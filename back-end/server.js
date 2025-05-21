@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
+import { fileURLToPath } from "url";
+import connectDB from "./config/db.js";
 
 // Load environment variables
 dotenv.config();
@@ -21,10 +23,6 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
-
-// Error Handling Middleware
-app.use(notFound);
-app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;
