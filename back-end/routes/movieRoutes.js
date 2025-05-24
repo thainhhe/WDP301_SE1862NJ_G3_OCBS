@@ -15,7 +15,11 @@ const router = express.Router();
 
 // Public routes
 router.get("/", getMovies);
+router.get("/trending", getTrendingMovies);
 router.get("/:id", getMovieById);
+
+// Protected routes
+router.get("/recommended", protect, getRecommendedMovies);
 
 // Admin routes
 router.post("/", protect, admin, createMovie);

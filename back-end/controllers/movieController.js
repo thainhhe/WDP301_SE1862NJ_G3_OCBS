@@ -147,4 +147,146 @@ const deleteMovie = asyncHandler(async (req, res) => {
   }
 });
 
-export { createMovie, getMovies, getMovieById, updateMovie, deleteMovie };
+// Get recommended movies for user  GET /api/movies/recommended  Private
+const getRecommendedMovies = asyncHandler(async (req, res) => {
+  // If user is logged in, get recommendations based on preferences
+  if (req.user) {
+    const userPreferences = req.user.preferences || {};
+    const favoriteGenres = userPreferences.genres || [];
+
+    // Get movies that match user's favorite genres
+    let recommendedMovies = [];
+
+    if (favoriteGenres.length > 0) {
+      recommendedMovies = await Movie.find({
+        genre: { $in: favoriteGenres },
+        status: "now-showing",
+      })
+        .sort({ hotness: -1 })
+        .limit(8);
+    }
+
+    // If not enough recommendations, add popular movies
+    if (recommendedMovies.length < 8) {
+      const additionalMovies = await Movie.find({
+        status: "now-showing",
+        _id: { $nin: recommendedMovies.map((m) => m._id) },
+      })
+        .sort({ hotness: -1 })
+        .limit(8 - recommendedMovies.length);
+
+      recommendedMovies = [...recommendedMovies, ...additionalMovies];
+    }
+
+    res.json(recommendedMovies);
+  } else {
+    // For guests, just return popular movies
+    const popularMovies = await Movie.find({ status: "now-showing" })
+      .sort({ hotness: -1 })
+      .limit(8);
+
+    res.json(popularMovies);
+  }
+});
+
+// Update movie hotness based on ticket sales  PUT /api/movies/update-hotness  Private/Admin
+const updateMovieHotness = asyncHandler(async (req, res) => {
+  // Calculate hotness for all movies based on recent ticket sales
+  const timeWindow = new Date();
+  timeWindow.setDate(timeWindow.getDate() - 7); // Last 7 days
+
+  // Aggregate bookings by movie and count tickets sold
+  const movieTicketCounts = await Booking.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: timeWindow },
+        bookingStatus: { $in: ["confirmed", "completed"] },
+      },
+    },
+    {
+      $lookup: {
+        from: "showtimes",
+        localField: "showtime",
+        foreignField: "_id",
+        as: "showtimeInfo",
+      },
+    },
+    {
+      $unwind: "$showtimeInfo",
+    },
+    {
+      $group: {
+        _id: "$showtimeInfo.movie",
+        ticketCount: { $sum: { $size: "$seats" } },
+      },
+    },
+  ]);
+
+  // Find max ticket count for normalization
+  let maxTickets = 0;
+  for (const movie of movieTicketCounts) {
+    if (movie.ticketCount > maxTickets) {
+      maxTickets = movie.ticketCount;
+    }
+  }
+
+  // Update hotness for each movie
+  const updates = [];
+  for (const movie of movieTicketCounts) {
+    // Normalize to a 0-10 scale
+    const hotness = maxTickets > 0 ? (movie.ticketCount / maxTickets) * 10 : 0;
+
+    updates.push({
+      updateOne: {
+        filter: { _id: movie._id },
+        update: { $set: { hotness: Math.round(hotness * 10) / 10 } }, // Round to 1 decimal place
+      },
+    });
+  }
+
+  // Set hotness to 0 for movies with no recent bookings
+  const moviesWithNoBookings = await Movie.find({
+    _id: { $nin: movieTicketCounts.map((m) => m._id) },
+  });
+
+  for (const movie of moviesWithNoBookings) {
+    updates.push({
+      updateOne: {
+        filter: { _id: movie._id },
+        update: { $set: { hotness: 0 } },
+      },
+    });
+  }
+
+  // Execute bulk update if there are updates
+  if (updates.length > 0) {
+    await Movie.bulkWrite(updates);
+  }
+
+  res.json({
+    message: "Movie hotness updated successfully",
+    updatedCount: updates.length,
+  });
+});
+
+// Get trending movies (highest hotness)  GET /api/movies/trending  Public
+const getTrendingMovies = asyncHandler(async (req, res) => {
+  const limit = Number.parseInt(req.query.limit) || 5;
+
+  const trendingMovies = await Movie.find({ status: "now-showing" })
+    .sort({ hotness: -1 })
+    .limit(limit);
+
+  res.json(trendingMovies);
+});
+
+export {
+  createMovie,
+  getMovies,
+  getMovieById,
+  updateMovie,
+  deleteMovie,
+  getRecommendedMovies,
+  updateMovieHotness,
+  getTrendingMovies,
+};

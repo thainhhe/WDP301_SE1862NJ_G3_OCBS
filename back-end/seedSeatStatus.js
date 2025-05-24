@@ -8,7 +8,7 @@ import Showtime from "./models/showtimeModel.js";
 
 dotenv.config();
 
-const showtimeId = "6666abcd1234abcd5678efgh"; // ❗Thay bằng showtime thật
+const showtimeId = "608f1f77bcf86cd799440021"; // ❗Thay bằng showtime thật
 
 const seedSeatStatus = async () => {
   try {

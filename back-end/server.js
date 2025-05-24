@@ -6,52 +6,18 @@ import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
+import { scheduleHotnessUpdates } from "./jobs/updateMovieHotness.js";
 
-// Load env
+// Routes
+import movieRoutes from "./routes/movieRoutes.js";
+
+import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
+
+// Load environment variables
 dotenv.config();
 
-// Connect DB
+// Connect to MongoDB
 connectDB();
-
-// Import models (side-effect to register schema)
-import "./models/bookingModel.js";
-import "./models/seatModel.js";
-import "./models/seatLayoutModel.js";
-import "./models/seatStatusModel.js";
-import "./models/branchModel.js";
-import "./models/userModel.js";
-import "./models/movieModel.js";
-import "./models/showtimeModel.js";
-import "./models/comboModel.js";
-import "./models/voucherModel.js";
-
-// Import to call .init()
-import Booking from "./models/bookingModel.js";
-import Seat from "./models/seatModel.js";
-import SeatLayout from "./models/seatLayoutModel.js";
-import SeatStatus from "./models/seatStatusModel.js";
-import Branch from "./models/branchModel.js";
-import User from "./models/userModel.js";
-import Movie from "./models/movieModel.js";
-import Showtime from "./models/showtimeModel.js";
-import Combo from "./models/comboModel.js";
-import Voucher from "./models/voucherModel.js";
-
-// Force create index/collection
-Promise.all([
-  Booking.init(),
-  Seat.init(),
-  SeatLayout.init(),
-  SeatStatus.init(),
-  Branch.init(),
-  User.init(),
-  Movie.init(),
-  Showtime.init(),
-  Combo.init(),
-  Voucher.init(),
-])
-  .then(() => console.log("✅ MongoDB models initialized"))
-  .catch((err) => console.error("❌ Model initialization failed:", err));
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -63,6 +29,32 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+
+// API Routes
+
+app.use("/api/movies", movieRoutes);
+
+// Serve static assets in production
+if (process.env.NODE_ENV === "production") {
+  // Set static folder
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+  // Any route that is not an API route will be redirected to index.html
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is running...");
+  });
+}
+
+// Schedule jobs
+scheduleHotnessUpdates();
+
+// Error Handling Middleware
+app.use(notFound);
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;
