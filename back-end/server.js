@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import { scheduleHotnessUpdates } from "./jobs/updateMovieHotness.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 // Routes
 import movieRoutes from "./routes/movieRoutes.js";
@@ -24,15 +25,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // API Routes
 
 app.use("/api/movies", movieRoutes);
+app.use("/api/upload", uploadRoutes);
+
+// Test route
+app.get("/", (req, res) => {
+  res.json({ message: "API is running..." });
+});
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {
