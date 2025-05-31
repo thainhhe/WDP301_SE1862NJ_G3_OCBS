@@ -16,13 +16,17 @@ const router = express.Router();
 // Public routes
 router.get("/", getMovies);
 router.get("/trending", getTrendingMovies);
+router.get("/recommended", getRecommendedMovies);
+
 router.get("/:id", getMovieById);
 
 // Protected routes
-router.get("/recommended", protect, getRecommendedMovies);
+// router.get("/recommended", protect, getRecommendedMovies);
 
 // Admin routes
-router.post("/", protect, admin, createMovie);
+// router.post("/", protect, admin, createMovie);
+router.post("/", createMovie);
+
 router.put("/update-hotness", protect, admin, updateMovieHotness);
 router
   .route("/:id")

@@ -31,15 +31,33 @@ app.use(
     credentials: true,
   })
 );
-app.use(helmet());
+
+// Cấu hình Helmet để cho phép static files
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": [
+          "'self'",
+          "data:",
+          "https://via.placeholder.com",
+          "http://localhost:5000",
+        ],
+      },
+    },
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+// Serve uploaded files - QUAN TRỌNG: Phải đặt trước các routes khác
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // API Routes
-
 app.use("/api/movies", movieRoutes);
 app.use("/api/upload", uploadRoutes);
 
@@ -56,10 +74,6 @@ if (process.env.NODE_ENV === "production") {
   // Any route that is not an API route will be redirected to index.html
   app.get("*", (req, res) => {
     res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("API is running...");
   });
 }
 

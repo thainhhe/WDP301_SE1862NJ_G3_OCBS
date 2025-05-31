@@ -13,7 +13,8 @@ const showtimeSchema = mongoose.Schema(
       required: true,
     },
     theater: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch.theaters",
       required: true,
     },
     startTime: {
