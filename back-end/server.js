@@ -43,6 +43,7 @@ import Voucher from "./models/voucherModel.js";
 import showtimeRoutes from './routes/showtimeRoutes.js';
 import movieRoutes from "./routes/movieRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 
 
@@ -97,7 +98,7 @@ app.use(morgan("dev"));
 
 // API Routes
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
+app.use("/api/auth", authRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/showtimes', showtimeRoutes);
 app.use("/api/upload", uploadRoutes);
