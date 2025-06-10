@@ -1,65 +1,64 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
-    <header className="bg-gray-900 text-white shadow-md">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold">
-          CinemaTickets
-        </Link>
-
-        {/* Mobile menu button */}
-        <button
-          className="md:hidden"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="hover:text-red-400">
-            Home
-          </Link>
-          <Link to="/movies" className="hover:text-red-400">
-            Movies
-          </Link>
-          <Link to="/admin/movies" className="hover:text-red-400">
-            Manage Movies
-          </Link>
-        </nav>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-gray-800 px-4 py-2">
-          <Link to="/" className="block py-2 hover:text-red-400">
-            Home
-          </Link>
-          <Link to="/movies" className="block py-2 hover:text-red-400">
-            Movies
-          </Link>
-          <Link to="/admin/movies" className="block py-2 hover:text-red-400">
-            Manage Movies
-          </Link>
+    <header className="bg-white shadow">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <Link to="/" className="text-xl font-bold text-indigo-600">
+                OCBS
+              </Link>
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <Link
+                to="/"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
+                Home
+              </Link>
+              {/* Add more navigation links here */}
+            </div>
+          </div>
+          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/profile"
+                  className="text-gray-700 hover:text-indigo-600 transition-colors"
+                >
+                  Welcome, {user.name}
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/login"
+                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </nav>
     </header>
   );
 };

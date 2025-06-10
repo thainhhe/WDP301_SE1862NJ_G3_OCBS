@@ -11,6 +11,7 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 
 // Routes
 import movieRoutes from "./routes/movieRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
@@ -60,6 +61,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // API Routes
 app.use("/api/movies", movieRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/auth", authRoutes);
 
 // Test route
 app.get("/", (req, res) => {
