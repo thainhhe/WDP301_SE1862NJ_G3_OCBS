@@ -14,9 +14,16 @@ const register = async (userData) => {
 // Login user
 const login = async (email, password) => {
   const response = await axios.post(`${API_URL}/login`, { email, password });
+
+  // Kiểm tra xem có dữ liệu trả về không
   if (response.data) {
+    // Lưu toàn bộ thông tin người dùng vào 'userInfo'
     localStorage.setItem('userInfo', JSON.stringify(response.data));
+
+    // Trích xuất token từ response.data và lưu vào 'authToken'
+    localStorage.setItem('authToken', response.data.token);
   }
+
   return response.data;
 };
 
@@ -24,6 +31,7 @@ const login = async (email, password) => {
 const logout = async () => {
   await axios.post(`${API_URL}/logout`);
   localStorage.removeItem('userInfo');
+  localStorage.removeItem('authToken');
 };
 
 // Get user profile

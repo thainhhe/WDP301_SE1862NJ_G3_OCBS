@@ -573,18 +573,18 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
               </div>
 
               {/* Poster URL Input */}
-              {posterUploadType === "url" && (
-                <input
-                  type="url"
-                  name="poster"
-                  value={formData.poster}
-                  onChange={handlePosterUrlChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                    errors.poster ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="https://example.com/poster.jpg"
-                />
-              )}
+              {/*{posterUploadType === "url" && (*/}
+              {/*  <input*/}
+              {/*    type="url"*/}
+              {/*    name="poster"*/}
+              {/*    value={formData.poster}*/}
+              {/*    onChange={handlePosterUrlChange}*/}
+              {/*    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${*/}
+              {/*      errors.poster ? "border-red-500" : "border-gray-300"*/}
+              {/*    }`}*/}
+              {/*    placeholder="https://example.com/poster.jpg"*/}
+              {/*  />*/}
+              {/*)}*/}
 
               {/* Poster File Upload */}
               {posterUploadType === "file" && (

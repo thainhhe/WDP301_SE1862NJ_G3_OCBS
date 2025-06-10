@@ -38,11 +38,9 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const data = await authService.login(email, password);
       setUser(data);
-      // Bỏ navigate('/') và trả về true khi thành công
       return true;
     } catch (err) {
       setError(err.response?.data?.message || "Invalid email or password");
-      // Trả về false khi thất bại
       return false;
     }
   };
@@ -51,7 +49,6 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
       setUser(null);
-      // Bỏ navigate('/login') và trả về true khi thành công
       return true;
     } catch (err) {
       console.error("Logout error:", err);

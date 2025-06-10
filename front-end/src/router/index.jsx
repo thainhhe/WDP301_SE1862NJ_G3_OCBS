@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import {createBrowserRouter, Route} from "react-router-dom";
 
 // Layouts
 import Layout from "@components/layout/Layout";
@@ -18,8 +18,10 @@ import RegisterPage from "@pages/auth/RegisterPage";
 import ForgotPasswordPage from "@pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "@pages/auth/ResetPasswordPage";
 
+
 // Admin Pages
 import UserList from "@pages/admin/UserManagement/UserList";
+import AdminMovies from "@pages/admin/AdminMovies";
 
 const router = createBrowserRouter([
     {
@@ -61,14 +63,14 @@ const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
             },
-            // {
-            //   path: 'admin/dashboard',
-            //   element: (
-            //     <ProtectedRoute allowedRoles={['admin']}>
-            //       <AdminDashboard />
-            //     </ProtectedRoute>
-            //   )
-            // },
+            {
+              path: 'admin/movies',
+              element: (
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminMovies />
+                </ProtectedRoute>
+              )
+            },
         ],
     },
     {
