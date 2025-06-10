@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import authService from '../services/authService';
+import { createContext, useContext, useState, useEffect } from "react";
+// Bỏ import useNavigate
+// import { useNavigate } from 'react-router-dom';
+import authService from "../services/authService";
 
 const AuthContext = createContext();
 
@@ -8,10 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const userInfo = localStorage.getItem('userInfo');
+    const userInfo = localStorage.getItem("userInfo");
     if (userInfo) {
       setUser(JSON.parse(userInfo));
     }
@@ -23,9 +23,13 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const data = await authService.register(userData);
       setUser(data);
-      navigate('/');
+      return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during registration');
+      setError(
+          err.response?.data?.message || "An error occurred during registration"
+      );
+      // Trả về false khi thất bại
+      return false;
     }
   };
 
@@ -34,9 +38,12 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const data = await authService.login(email, password);
       setUser(data);
-      navigate('/');
+      // Bỏ navigate('/') và trả về true khi thành công
+      return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      setError(err.response?.data?.message || "Invalid email or password");
+      // Trả về false khi thất bại
+      return false;
     }
   };
 
@@ -44,12 +51,16 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
       setUser(null);
-      navigate('/login');
+      // Bỏ navigate('/login') và trả về true khi thành công
+      return true;
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error("Logout error:", err);
+      // Trả về false khi thất bại
+      return false;
     }
   };
 
+  // Các hàm còn lại không thay đổi
   const updateProfile = async (userData) => {
     try {
       setError(null);
@@ -57,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data);
       return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Error updating profile');
+      setError(err.response?.data?.message || "Error updating profile");
       return false;
     }
   };
@@ -68,7 +79,9 @@ export const AuthProvider = ({ children }) => {
       await authService.forgotPassword(email);
       return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Error processing forgot password request');
+      setError(
+          err.response?.data?.message || "Error processing forgot password request"
+      );
       return false;
     }
   };
@@ -79,7 +92,7 @@ export const AuthProvider = ({ children }) => {
       await authService.resetPassword(password, token);
       return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Error resetting password');
+      setError(err.response?.data?.message || "Error resetting password");
       return false;
     }
   };
@@ -102,7 +115,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}; 
+};
