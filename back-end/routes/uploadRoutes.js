@@ -1,82 +1,98 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
-import { protect, admin } from "../middleware/authMiddleware.js";
 
+const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const router = express.Router();
+// Tạo thư mục uploads nếu chưa có
+const uploadsDir = path.join(__dirname, "../uploads/posters");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-// Configure multer for file uploads
+// Cấu hình multer để upload files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Create uploads directory if it doesn't exist
-    const uploadPath = path.join(__dirname, "../uploads/posters");
-    cb(null, uploadPath);
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename
+    // Tạo tên file unique
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "poster-" + uniqueSuffix + path.extname(file.originalname));
+    const extension = path.extname(file.originalname);
+    cb(null, "poster-" + uniqueSuffix + extension);
   },
 });
-
-const fileFilter = (req, file, cb) => {
-  // Check if file is an image
-  if (file.mimetype.startsWith("image/")) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only image files are allowed!"), false);
-  }
-};
 
 const upload = multer({
   storage: storage,
-  fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    // Chỉ cho phép upload ảnh
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
   },
 });
 
-// @desc    Upload movie poster
-// @route   POST /api/upload/poster
-// @access  Private/Admin
-router.post("/poster", protect, admin, upload.single("poster"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+// Route upload poster
+router.post("/poster", (req, res) => {
+  upload.single("poster")(req, res, (err) => {
+    if (err) {
+      console.error("Upload error:", err);
+      return res.status(400).json({
+        message: "Upload failed",
+        error: err.message,
+      });
     }
 
-    // Return the file URL
-    const fileUrl = `/uploads/posters/${req.file.filename}`;
-    res.json({
-      message: "File uploaded successfully",
-      url: fileUrl,
-      filename: req.file.filename,
-    });
-  } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({ message: "Error uploading file" });
-  }
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Trả về đường dẫn file
+      const filePath = `uploads/posters/${req.file.filename}`;
+
+      console.log("File uploaded successfully:", {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        path: filePath,
+        size: req.file.size,
+      });
+
+      res.json({
+        message: "File uploaded successfully",
+        url: filePath,
+        filePath: filePath,
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+      });
+    } catch (error) {
+      console.error("Upload processing error:", error);
+      res.status(500).json({
+        message: "Upload processing failed",
+        error: error.message,
+      });
+    }
+  });
 });
 
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(400)
-        .json({ message: "File too large. Maximum size is 5MB." });
-    }
-  }
-
-  if (error.message === "Only image files are allowed!") {
-    return res.status(400).json({ message: "Only image files are allowed!" });
-  }
-
-  res.status(500).json({ message: "Error uploading file" });
+// Route để kiểm tra upload endpoint
+router.get("/test", (req, res) => {
+  res.json({
+    message: "Upload route is working",
+    uploadsDir: uploadsDir,
+    dirExists: fs.existsSync(uploadsDir),
+  });
 });
 
 export default router;

@@ -1,13 +1,13 @@
 import express from "express";
 import {
-    createMovie,
-    getMovies,
-    getMovieById,
-    updateMovie,
-    deleteMovie,
-    getRecommendedMovies,
-    updateMovieHotness,
-    getTrendingMovies,
+  createMovie,
+  getMovies,
+  getMovieById,
+  updateMovie,
+  deleteMovie,
+  getRecommendedMovies,
+  updateMovieHotness,
+  getTrendingMovies,
 } from "../controllers/movieController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
@@ -27,10 +27,7 @@ router.get("/:id", getMovieById);
 // router.post("/", protect, admin, createMovie);
 router.post("/", createMovie);
 
-router.put("/update-hotness", protect, admin, updateMovieHotness);
-router
-    .route("/:id")
-    .put(protect, admin, updateMovie)
-    .delete(protect, admin, deleteMovie);
+router.put("/update-hotness", updateMovieHotness);
+router.route("/:id").put(updateMovie).delete(protect, admin, deleteMovie);
 
 export default router;
