@@ -6,6 +6,7 @@ import LoadingSpinner from "@components/ui/LoadingSpinner";
 
 // Lazy loaded pages
 const Home = lazy(() => import("@pages/Home"));
+const AdminMovies = lazy(() => import("@pages/admin/AdminMovies"));
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           {/* Public Routes */}
           <Route index element={<Home />} />
+          <Route path="admin/movies" element={<AdminMovies />} />
         </Route>
       </Routes>
     </Suspense>
