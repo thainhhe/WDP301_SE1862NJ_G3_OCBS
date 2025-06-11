@@ -1,5 +1,4 @@
 import api from "./api";
-import axios from "axios";
 
 export const movieService = {
   async getMovies(params = {}) {
@@ -13,27 +12,12 @@ export const movieService = {
   },
 
   async createMovie(movieData) {
-    const authToken = localStorage.getItem('authToken');
-    const response = await api.post("/movies", movieData,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          }
-        });
+    const response = await api.post("/movies", movieData);
     return response.data;
   },
 
   async updateMovie(id, movieData) {
-    const authToken = localStorage.getItem('authToken');
-    const response = await axios.put(
-        `/movies/${id}`,
-        movieData,
-        {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        }
-    );
+    const response = await api.put(`/movies/${id}`, movieData);
     return response.data;
   },
 

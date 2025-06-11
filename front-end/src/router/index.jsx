@@ -1,4 +1,4 @@
-import {createBrowserRouter, Route} from "react-router-dom";
+import {createBrowserRouter, Navigate, Route} from "react-router-dom";
 
 // Layouts
 import Layout from "@components/layout/Layout";
@@ -22,6 +22,8 @@ import ResetPasswordPage from "@pages/auth/ResetPasswordPage";
 // Admin Pages
 import UserList from "@pages/admin/UserManagement/UserList";
 import AdminMovies from "@pages/admin/AdminMovies";
+import DashboardLayout from "@/layout/DashboardLayout.jsx";
+import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
 
 const router = createBrowserRouter([
     {
@@ -31,8 +33,6 @@ const router = createBrowserRouter([
             // --- Public Routes ---
             { index: true, element: <Home /> },
             { path: "movies", element: <Movies /> },
-
-            // --- Authenticated User Routes (customer, employee, admin) ---
             {
                 path: "profile",
                 element: (
@@ -52,17 +52,6 @@ const router = createBrowserRouter([
             //     </ProtectedRoute>
             //   )
             // },
-
-            // --- Admin Only Routes ---
-            // Ví dụ: Chỉ admin mới có thể truy cập trang quản lý người dùng
-            {
-                path: "userList",
-                element: (
-                    <ProtectedRoute allowedRoles={["admin"]}>
-                        <UserList />
-                    </ProtectedRoute>
-                ),
-            },
             {
               path: 'admin/movies',
               element: (
@@ -74,9 +63,8 @@ const router = createBrowserRouter([
         ],
     },
     {
-        // Layout riêng cho các trang xác thực (login, register, ...)
         path: "/",
-        element: <AuthLayout />, // Layout này không có footer
+        element: <AuthLayout />,
         children: [
             { path: "login", element: <LoginPage /> },
             { path: "register", element: <RegisterPage /> },
@@ -84,8 +72,20 @@ const router = createBrowserRouter([
             { path: "reset-password/:resettoken", element: <ResetPasswordPage /> },
         ],
     },
-    // Thêm các route không tìm thấy (404 Not Found) ở đây nếu cần
-    // { path: '*', element: <NotFoundPage /> }
+    {
+        path: "/admin",
+        element: (
+            <ProtectedRoute allowedRoles={["admin", "employee"]}>
+                <DashboardLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { index: true, element: <Navigate to="dashboard" replace /> },
+            { path: "dashboard", element: <AdminDashboardPage /> },
+            { path: "movies", element: <AdminMovies /> },
+            { path: "users", element: <UserList /> },
+        ],
+    },
 ]);
 
 export default router;
