@@ -26,7 +26,7 @@ import "./models/movieModel.js";
 import "./models/showtimeModel.js";
 import "./models/comboModel.js";
 import "./models/voucherModel.js";
-
+import "./models/theaterModel.js";
 // Import to call .init()
 import Booking from "./models/bookingModel.js";
 import Seat from "./models/seatModel.js";
@@ -46,21 +46,8 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 
 
 
-// Force create index/collection
-Promise.all([
-  Booking.init(),
-  Seat.init(),
-  SeatLayout.init(),
-  SeatStatus.init(),
-  Branch.init(),
-  User.init(),
-  Movie.init(),
-  Showtime.init(),
-  Combo.init(),
-  Voucher.init(),
-])
-  .then(() => console.log("✅ MongoDB models initialized"))
-  .catch((err) => console.error("❌ Model initialization failed:", err));
+
+
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
