@@ -27,22 +27,13 @@ import "./models/showtimeModel.js";
 import "./models/comboModel.js";
 import "./models/voucherModel.js";
 import "./models/theaterModel.js";
-// Import to call .init()
-import Booking from "./models/bookingModel.js";
-import Seat from "./models/seatModel.js";
-import SeatLayout from "./models/seatLayoutModel.js";
-import SeatStatus from "./models/seatStatusModel.js";
-import Branch from "./models/branchModel.js";
-import User from "./models/userModel.js";
-import Movie from "./models/movieModel.js";
-import Showtime from "./models/showtimeModel.js";
-import Combo from "./models/comboModel.js";
-import Voucher from "./models/voucherModel.js";
+
 
 // Import routes
 import showtimeRoutes from './routes/showtimeRoutes.js';
 import movieRoutes from "./routes/movieRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import branchRoutes from "./routes/branchRoutes.js";
 
 
 
@@ -88,6 +79,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use('/api/movies', movieRoutes);
 app.use('/api/showtimes', showtimeRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use('/api/branches', branchRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
