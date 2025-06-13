@@ -1,9 +1,19 @@
 import express from 'express';
 const router = express.Router();
-import { getUsers } from '../controllers/userController.js';
+import {
+    getUsers,
+    getUserById,
+    createUser,
+    updateUserById
+} from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
-// Tất cả các route trong file này đều cần protect và quyền admin
-router.route('/').get(protect, admin, getUsers);
+router.route('/')
+    .get(protect, admin, getUsers)
+    .post(protect, admin, createUser);
+
+router.route('/:id')
+    .get(protect, admin, getUserById)
+    .put(protect, admin, updateUserById);
 
 export default router;

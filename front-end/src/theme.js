@@ -18,21 +18,15 @@ const theme = createTheme({
             paper: paperColor,
         },
         text: {
-            primary: '#212121', // Màu chữ chính
-            secondary: '#757575', // Màu chữ phụ
+            primary: '#212121',
+            secondary: '#757575',
         },
     },
     typography: {
         fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-        h4: {
-            fontWeight: 600,
-        },
-        h5: {
-            fontWeight: 600,
-        },
-        h6: {
-            fontWeight: 600,
-        },
+        h4: { fontWeight: 600 },
+        h5: { fontWeight: 600 },
+        h6: { fontWeight: 600 },
     },
     components: {
         MuiAppBar: {
@@ -46,16 +40,20 @@ const theme = createTheme({
         },
         MuiDrawer: {
             styleOverrides: {
-                paper: {
-                    backgroundColor: secondaryColor,
-                    color: 'white',
-                },
+                paper: ({ ownerState }) => ({
+                    ...(ownerState.anchor === 'left' && {
+                        backgroundColor: secondaryColor,
+                        color: 'white',
+                    }),
+                }),
             },
         },
         MuiListItemIcon: {
             styleOverrides: {
-                root: {
-                    color: 'white',
+                root: ({ ownerState, theme }) => {
+                    return {
+                        color: 'inherit',
+                    };
                 }
             }
         }
