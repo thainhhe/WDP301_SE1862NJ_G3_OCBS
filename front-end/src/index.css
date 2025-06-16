@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #e50914;
+  --primary-hover: #b81d24;
+  --secondary: #221f1f;
+  --background: #f5f5f5;
+  --text: #333333;
+  --light-text: #ffffff;
+  --border: #e0e0e0;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+    "Helvetica Neue", sans-serif;
+  color: var(--text);
+  background-color: var(--background);
+  margin: 0;
+  padding: 0;
+}
+
+.btn-primary {
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition duration-200;
+}
+
+.btn-outline {
+  @apply border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-medium py-2 px-4 rounded-md transition duration-200;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md overflow-hidden;
+}
+
+.input-field {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent;
+}
+
+.label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.section-title {
+  @apply text-2xl font-bold mb-6;
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Prevent flickering and improve performance */
+.group {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Smooth transitions without flickering */
+.group .group-hover\:bg-opacity-60 {
+  transition: background-color 0.3s ease-in-out;
+}
+
+.group .group-hover\:opacity-100 {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Movie card styles - Updated to prevent flickering */
+.movie-card {
+  @apply relative overflow-hidden rounded-lg shadow-lg;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.movie-card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.3s ease-in-out;
+}
+
+.movie-card-image {
+  @apply w-full h-64 object-cover;
+}
+
+.movie-card-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 transition-opacity duration-300 flex flex-col justify-end p-4;
+}
+
+.movie-card:hover .movie-card-overlay {
+  opacity: 1;
+}
+
+.movie-card-title {
+  @apply text-white text-xl font-bold mb-1;
+}
+
+.movie-card-info {
+  @apply text-white text-sm;
+}
+
+.hotness-badge {
+  @apply absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full;
+}
+
+/* Loading animations */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Fix for image loading flicker */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}

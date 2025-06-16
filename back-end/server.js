@@ -29,12 +29,14 @@ import "./models/voucherModel.js";
 import "./models/theaterModel.js";
 
 
+
 // Import routes
 import showtimeRoutes from './routes/showtimeRoutes.js';
 import movieRoutes from "./routes/movieRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
-
+import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 
 
@@ -80,6 +82,8 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/showtimes', showtimeRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use('/api/branches', branchRoutes);
+app.use('/api/users', userRoutes);
+app.use("/api/auth", authRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
