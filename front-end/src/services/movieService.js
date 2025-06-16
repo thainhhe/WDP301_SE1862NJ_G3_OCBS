@@ -1,5 +1,4 @@
 import api from "./api";
-import axios from "axios";
 
 export const movieService = {
   async getMovies(params = {}) {
