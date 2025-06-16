@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
+const GENDER_OPTIONS = [
+  { value: 'Nam', label: 'Nam' },
+  { value: 'Nữ', label: 'Nữ' },
+  { value: 'Khác', label: 'Khác' },
+];
+const PROVINCE_OPTIONS = [
+  'Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác'
+];
+const CITY_OPTIONS = [
+  'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Khác'
+];
+
 const ProfilePage = () => {
   const { user, updateProfile, error } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -10,17 +22,35 @@ const ProfilePage = () => {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    province: user?.province || '',
+    city: user?.city || '',
+    gender: user?.gender || '',
+    dob: user?.dob ? user.dob.slice(0, 10) : '',
+    genres: user?.preferences?.genres || [],
     currentPassword: '',
     newPassword: '',
     confirmNewPassword: '',
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleGenreChange = (e) => {
+    const { value, checked } = e.target;
+    setFormData((prev) => {
+      let genres = prev.genres || [];
+      if (checked) {
+        genres = [...genres, value];
+      } else {
+        genres = genres.filter((g) => g !== value);
+      }
+      return { ...prev, genres };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -28,13 +58,10 @@ const ProfilePage = () => {
     setMessage('');
 
     if (isChangingPassword) {
-      // Validate password match
       if (formData.newPassword !== formData.confirmNewPassword) {
         setMessage('New passwords do not match');
         return;
       }
-
-      // Validate password strength
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
       if (!passwordRegex.test(formData.newPassword)) {
         setMessage(
@@ -48,19 +75,21 @@ const ProfilePage = () => {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
+      province: formData.province,
+      city: formData.city,
+      gender: formData.gender,
+      dob: formData.dob,
+      preferences: { genres: formData.genres },
     };
-
     if (isChangingPassword) {
       updateData.currentPassword = formData.currentPassword;
       updateData.password = formData.newPassword;
     }
-
     const success = await updateProfile(updateData);
     if (success) {
       setMessage('Profile updated successfully');
       setIsEditing(false);
       setIsChangingPassword(false);
-      // Reset password fields
       setFormData((prev) => ({
         ...prev,
         currentPassword: '',
@@ -70,192 +99,124 @@ const ProfilePage = () => {
     }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Profile Information
-            </h3>
-            <form onSubmit={handleSubmit} className="mt-5 space-y-6">
-              {(error || message) && (
-                <div
-                  className={`rounded-md ${
-                    error ? 'bg-red-50' : 'bg-green-50'
-                  } p-4`}
-                >
-                  <div
-                    className={`text-sm ${
-                      error ? 'text-red-700' : 'text-green-700'
-                    }`}
-                  >
-                    {error || message}
-                  </div>
-                </div>
-              )}
+  
 
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="bg-white shadow-lg rounded-2xl p-8 flex flex-col md:flex-row gap-8">
+        <div className="md:w-1/2 w-full space-y-6">
+          <h2 className="text-2xl font-bold text-indigo-700 mb-4">Thông tin cá nhân</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {(error || message) && (
+              <div className={`rounded-md ${error ? 'bg-red-50' : 'bg-green-50'} p-4`}> 
+                <div className={`text-sm ${error ? 'text-red-700' : 'text-green-700'}`}>{error || message}</div>
+              </div>
+            )}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Họ tên</label>
+              <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" name="email" id="email" value={formData.email} disabled className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 text-gray-500 sm:text-sm" />
+            </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Số điện thoại</label>
+              <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+            </div>
+            <div className="flex gap-4">
+              <div className="w-1/2">
+                <label htmlFor="province" className="block text-sm font-medium text-gray-700">Tỉnh/Thành phố</label>
+                <select name="province" id="province" value={formData.province} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <option value="">Chọn tỉnh/thành</option>
+                  {PROVINCE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="w-1/2">
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700">Quận/Huyện</label>
+                <select name="city" id="city" value={formData.city} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <option value="">Chọn quận/huyện</option>
+                  {CITY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-1/2">
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Giới tính</label>
+                <select name="gender" id="gender" value={formData.gender} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <option value="">Chọn giới tính</option>
+                  {GENDER_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </div>
+              <div className="w-1/2">
+                <label htmlFor="dob" className="block text-sm font-medium text-gray-700">Ngày sinh</label>
+                <input type="date" name="dob" id="dob" value={formData.dob} onChange={handleChange} disabled={!isEditing} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              </div>
+            </div>
+           
+            {isChangingPassword && (
               <div className="space-y-4">
                 <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">Mật khẩu hiện tại</label>
+                  <input type="password" name="currentPassword" id="currentPassword" value={formData.currentPassword} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
                 </div>
-
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
+                  <input type="password" name="newPassword" id="newPassword" value={formData.newPassword} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
                 </div>
-
                 <div>
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    id="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
+                  <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700">Xác nhận mật khẩu mới</label>
+                  <input type="password" name="confirmNewPassword" id="confirmNewPassword" value={formData.confirmNewPassword} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
                 </div>
-
-                {isChangingPassword && (
-                  <>
-                    <div>
-                      <label
-                        htmlFor="currentPassword"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        name="currentPassword"
-                        id="currentPassword"
-                        value={formData.currentPassword}
-                        onChange={handleChange}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="newPassword"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        name="newPassword"
-                        id="newPassword"
-                        value={formData.newPassword}
-                        onChange={handleChange}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="confirmNewPassword"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        name="confirmNewPassword"
-                        id="confirmNewPassword"
-                        value={formData.confirmNewPassword}
-                        onChange={handleChange}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                  </>
-                )}
               </div>
-
-              <div className="flex justify-end space-x-3">
-                {!isEditing && !isChangingPassword && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(true)}
-                      className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Edit Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsChangingPassword(true)}
-                      className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Change Password
-                    </button>
-                  </>
-                )}
-
-                {(isEditing || isChangingPassword) && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setIsChangingPassword(false);
-                        setFormData({
-                          name: user?.name || '',
-                          email: user?.email || '',
-                          phone: user?.phone || '',
-                          currentPassword: '',
-                          newPassword: '',
-                          confirmNewPassword: '',
-                        });
-                      }}
-                      className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Save Changes
-                    </button>
-                  </>
-                )}
-              </div>
-            </form>
+            )}
+            <div className="flex justify-end gap-3 pt-4">
+              {!isEditing && !isChangingPassword && (
+                <>
+                  <button type="button" onClick={() => setIsEditing(true)} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Chỉnh sửa</button>
+                  <button type="button" onClick={() => setIsChangingPassword(true)} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Đổi mật khẩu</button>
+                </>
+              )}
+              {(isEditing || isChangingPassword) && (
+                <>
+                  <button type="button" onClick={() => {
+                    setIsEditing(false);
+                    setIsChangingPassword(false);
+                    setFormData({
+                      name: user?.name || '',
+                      email: user?.email || '',
+                      phone: user?.phone || '',
+                      province: user?.province || '',
+                      city: user?.city || '',
+                      gender: user?.gender || '',
+                      dob: user?.dob ? user.dob.slice(0, 10) : '',
+                      genres: user?.preferences?.genres || [],
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmNewPassword: '',
+                    });
+                  }} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Huỷ</button>
+                  <button type="submit" className="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Lưu thay đổi</button>
+                </>
+              )}
+            </div>
+          </form>
+        </div>
+        <div className="md:w-1/2 w-full flex flex-col items-center justify-center bg-indigo-50 rounded-xl p-6">
+          <div className="text-6xl mb-4">👤</div>
+          <div className="text-lg font-semibold text-indigo-700 mb-2">{formData.name}</div>
+          <div className="text-gray-500 mb-1">{formData.email}</div>
+          <div className="mt-6 w-full">
+            <div className="text-xs text-gray-400 mb-1">Sở thích thể loại phim</div>
+            <div className="flex flex-wrap gap-2">
+              {formData.genres && formData.genres.length > 0 ? (
+                formData.genres.map((g) => (
+                  <span key={g} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs border border-indigo-200">{g}</span>
+                ))
+              ) : (
+                <span className="text-gray-400 text-xs">Chưa chọn</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
