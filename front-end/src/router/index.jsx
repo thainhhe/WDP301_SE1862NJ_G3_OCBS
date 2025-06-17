@@ -10,6 +10,8 @@ import ProtectedRoute from "@router/ProtectedRoute";
 // Pages
 import Home from "@pages/Home";
 import Movies from "@pages/Movies";
+import MovieDetails from "@pages/MovieDetails"
+import ShowtimesPage from "@pages/ShowtimesPage"
 import ProfilePage from "@pages/profile/ProfilePage";
 
 // Auth Pages
@@ -34,6 +36,8 @@ const router = createBrowserRouter([
             // --- Public Routes ---
             { index: true, element: <Home /> },
             { path: "movies", element: <Movies /> },
+            { path: "movies/:id", element: <MovieDetails /> },
+            { path: "showtimes", element: <ShowtimesPage /> },
             {
                 path: "profile",
                 element: (

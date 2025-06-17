@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
     Calendar,
     Clock,
@@ -14,6 +14,9 @@ import {
     Trash2,
     Edit,
     DollarSign,
+    RefreshCw,
+    CheckSquare,
+    Square,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,191 +32,75 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-
-// Updated service to match your database structure
-const showtimeService = {
-    async getShowtimes(params = {}) {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Mock data matching your database structure
-        const mockShowtimes = [
-            {
-                _id: "6839f8cf1d41275d7f3ed919",
-                movie: {
-                    _id: "6837e2a9dbcf9e3ee9724aab",
-                    title: "Siêu Anh Hùng Báo Thù Trở Lại",
-                    duration: 148,
-                },
-                branch: {
-                    location: {
-                        coordinates: {
-                            latitude: 10.7769,
-                            longitude: 106.7009,
-                        },
-                        address: "123 Đường Đồng Khởi, P. Thanh Xuân",
-                        city: "Hà Nội",
-                        province: "Hà Nội",
-                    },
-                    _id: "6837e76a9b8c8c3c76374787",
-                    name: "CinemaHub Thanh Xuân",
-                },
-                theater: {
-                    _id: "6837e76a9b8c8c3c76374788",
-                    name: "Phòng chiếu 1 (64 ghế)",
-                    capacity: 64,
-                },
-                price: {
-                    standard: 100000,
-                    vip: 150000,
-                    couple: 220000,
-                },
-                startTime: "2025-05-24T14:00:00.000Z",
-                endTime: "2025-05-24T16:28:00.000Z",
-                isLastShow: false,
-                isFirstShow: true,
-                seatsAvailable: 118,
-                seatsBooked: 2,
-                createdAt: "2025-05-01T10:00:00.000Z",
-                updatedAt: "2025-05-01T10:00:00.000Z",
-            },
-            {
-                _id: "6839f8cf1d41275d7f3ed920",
-                movie: {
-                    _id: "6837e2a9dbcf9e3ee9724aac",
-                    title: "Người Nhện: Không Còn Nhà",
-                    duration: 135,
-                },
-                branch: {
-                    location: {
-                        coordinates: {
-                            latitude: 10.7769,
-                            longitude: 106.7009,
-                        },
-                        address: "456 Đường Lê Lợi, Q.1",
-                        city: "Hồ Chí Minh",
-                        province: "Hồ Chí Minh",
-                    },
-                    _id: "6837e76a9b8c8c3c76374788",
-                    name: "CinemaHub Quận 1",
-                },
-                theater: {
-                    _id: "6837e76a9b8c8c3c76374789",
-                    name: "Phòng chiếu VIP (32 ghế)",
-                    capacity: 32,
-                },
-                price: {
-                    standard: 120000,
-                    vip: 180000,
-                    couple: 250000,
-                },
-                startTime: "2025-05-24T19:30:00.000Z",
-                endTime: "2025-05-24T21:45:00.000Z",
-                isLastShow: true,
-                isFirstShow: false,
-                seatsAvailable: 28,
-                seatsBooked: 4,
-                createdAt: "2025-05-01T10:00:00.000Z",
-                updatedAt: "2025-05-01T10:00:00.000Z",
-            },
-            {
-                _id: "6839f8cf1d41275d7f3ed921",
-                movie: {
-                    _id: "6837e2a9dbcf9e3ee9724aad",
-                    title: "Avatar: Dòng Chảy Của Nước",
-                    duration: 192,
-                },
-                branch: {
-                    location: {
-                        coordinates: {
-                            latitude: 10.7769,
-                            longitude: 106.7009,
-                        },
-                        address: "789 Đường Nguyễn Huệ, Q.1",
-                        city: "Hồ Chí Minh",
-                        province: "Hồ Chí Minh",
-                    },
-                    _id: "6837e76a9b8c8c3c76374789",
-                    name: "CinemaHub IMAX",
-                },
-                theater: {
-                    _id: "6837e76a9b8c8c3c76374790",
-                    name: "IMAX Theater (120 ghế)",
-                    capacity: 120,
-                },
-                price: {
-                    standard: 200000,
-                    vip: 280000,
-                    couple: 350000,
-                },
-                startTime: "2025-05-25T16:00:00.000Z",
-                endTime: "2025-05-25T19:12:00.000Z",
-                isLastShow: false,
-                isFirstShow: false,
-                seatsAvailable: 0,
-                seatsBooked: 120,
-                createdAt: "2025-05-01T10:00:00.000Z",
-                updatedAt: "2025-05-01T10:00:00.000Z",
-            },
-        ]
-
-        return {
-            showtimes: mockShowtimes,
-            page: 1,
-            pages: 1,
-            total: mockShowtimes.length,
-        }
-    },
-
-    async createShowtime(data) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        return { success: true }
-    },
-
-    async updateShowtime(id, data) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        return { success: true }
-    },
-
-    async deleteShowtime(id) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        return { success: true }
-    },
-}
-
-const movieService = {
-    async getMovies() {
-        return {
-            movies: [
-                { _id: "6837e2a9dbcf9e3ee9724aab", title: "Siêu Anh Hùng Báo Thù Trở Lại" },
-                { _id: "6837e2a9dbcf9e3ee9724aac", title: "Người Nhện: Không Còn Nhà" },
-                { _id: "6837e2a9dbcf9e3ee9724aad", title: "Avatar: Dòng Chảy Của Nước" },
-            ],
-        }
-    },
-}
+import ShowtimeForm from "../../components/admin/ShowtimeForm"
+import { showtimeService, movieService } from "../../services/showtimeService"
 
 const AdminShowtimes = () => {
     const [showtimes, setShowtimes] = useState([])
     const [movies, setMovies] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [success, setSuccess] = useState(null)
     const [showForm, setShowForm] = useState(false)
     const [editingShowtime, setEditingShowtime] = useState(null)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
     const [showtimeToDelete, setShowtimeToDelete] = useState(null)
+    const [selectedShowtimes, setSelectedShowtimes] = useState([])
     const [filters, setFilters] = useState({
         movieId: "all",
         branchId: "all",
         theaterId: "all",
         date: "",
         search: "",
+        status: "all",
     })
     const [pagination, setPagination] = useState({
         page: 1,
         pages: 1,
         total: 0,
     })
+    const [stats, setStats] = useState({
+        total: 0,
+        today: 0,
+        branches: 0,
+        movies: 0,
+    })
+
+    // Mock data for development/testing
+    const mockShowtimes = [
+        {
+            _id: "1",
+            movie: { _id: "movie1", title: "Avengers: Endgame", duration: 181 },
+            branch: { _id: "branch1", name: "Downtown Cinema", location: { city: "New York" } },
+            theater: { _id: "theater1", name: "Theater 1", capacity: 150 },
+            startTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+            endTime: new Date(Date.now() + 86400000 + 10860000).toISOString(), // Tomorrow + 3 hours
+            price: { standard: 12.5, vip: 18.75, couple: 27.5 },
+            seatsAvailable: 120,
+            seatsBooked: 30,
+            status: "scheduled",
+            is3D: false,
+            isSpecialShowing: false,
+            subtitles: true,
+            notes: "Regular showing",
+        },
+        {
+            _id: "2",
+            movie: { _id: "movie2", title: "Spider-Man: No Way Home", duration: 148 },
+            branch: { _id: "branch2", name: "Mall Cinema", location: { city: "Los Angeles" } },
+            theater: { _id: "theater2", name: "IMAX Theater", capacity: 200 },
+            startTime: new Date().toISOString(), // Now (ongoing)
+            endTime: new Date(Date.now() + 8880000).toISOString(), // Now + 2.5 hours
+            price: { standard: 15.0, vip: 22.5, couple: 33.0 },
+            seatsAvailable: 50,
+            seatsBooked: 150,
+            status: "ongoing",
+            is3D: true,
+            isSpecialShowing: true,
+            subtitles: false,
+            notes: "IMAX 3D Experience",
+        },
+    ]
 
     useEffect(() => {
         fetchData()
@@ -224,51 +111,114 @@ const AdminShowtimes = () => {
             setLoading(true)
             setError(null)
 
-            const [showtimesData, moviesData] = await Promise.all([fetchShowtimes(), fetchMovies()])
+            // Build query parameters
+            const showtimeParams = {
+                page: pagination.page,
+                limit: 50,
+            }
+
+            // Add filters
+            if (filters.movieId && filters.movieId !== "all") {
+                showtimeParams.movie = filters.movieId
+            }
+            if (filters.branchId && filters.branchId !== "all") {
+                showtimeParams.branch = filters.branchId
+            }
+            if (filters.theaterId && filters.theaterId !== "all") {
+                showtimeParams.theater = filters.theaterId
+            }
+            if (filters.status && filters.status !== "all") {
+                showtimeParams.status = filters.status
+            }
+            if (filters.search && filters.search.trim()) {
+                showtimeParams.search = filters.search.trim()
+            }
+
+            // Filter by specific date if provided
+            if (filters.date) {
+                const selectedDate = new Date(filters.date)
+                const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+                const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
+
+                showtimeParams.startTimeAfter = startOfDay.toISOString()
+                showtimeParams.startTimeBefore = endOfDay.toISOString()
+            }
+
+            console.log("Fetching admin data with params:", showtimeParams)
+
+            // Try to fetch real data first
+            try {
+                const [showtimesData, moviesData, statsData] = await Promise.all([
+                    showtimeService.getShowtimes(showtimeParams),
+                    movieService.getMovies({ limit: 100 }),
+                    showtimeService.getShowtimeStats().catch(() => ({})),
+                ])
+
+                console.log("Admin data fetched:", { showtimesData, moviesData })
+
+                // Handle different response structures
+                const fetchedShowtimes = Array.isArray(showtimesData)
+                    ? showtimesData
+                    : showtimesData?.showtimes || showtimesData?.data || []
+
+                const fetchedMovies = Array.isArray(moviesData) ? moviesData : moviesData?.movies || moviesData?.data || []
+
+                console.log("Processed data:", { fetchedShowtimes, fetchedMovies })
+
+                setShowtimes(fetchedShowtimes)
+                setMovies(fetchedMovies)
+
+                // Update pagination
+                if (showtimesData && typeof showtimesData === "object" && !Array.isArray(showtimesData)) {
+                    setPagination({
+                        page: showtimesData.page || 1,
+                        pages: showtimesData.pages || 1,
+                        total: showtimesData.total || fetchedShowtimes.length,
+                    })
+                }
+
+                // Update stats
+                setStats({
+                    total: fetchedShowtimes.length,
+                    today: fetchedShowtimes.filter((s) => {
+                        const today = new Date().toDateString()
+                        const showDate = new Date(s.startTime).toDateString()
+                        return today === showDate
+                    }).length,
+                    branches: new Set(fetchedShowtimes.map((s) => s.branch?._id).filter(Boolean)).size,
+                    movies: new Set(fetchedShowtimes.map((s) => s.movie?._id).filter(Boolean)).size,
+                    ...statsData,
+                })
+            } catch (apiError) {
+                console.warn("API not available, using mock data:", apiError)
+                // Use mock data when API is not available
+                setShowtimes(mockShowtimes)
+                setMovies([
+                    { _id: "movie1", title: "Avengers: Endgame", duration: 181 },
+                    { _id: "movie2", title: "Spider-Man: No Way Home", duration: 148 },
+                    { _id: "movie3", title: "The Batman", duration: 176 },
+                ])
+                setStats({
+                    total: mockShowtimes.length,
+                    today: mockShowtimes.filter((s) => {
+                        const today = new Date().toDateString()
+                        const showDate = new Date(s.startTime).toDateString()
+                        return today === showDate
+                    }).length,
+                    branches: new Set(mockShowtimes.map((s) => s.branch._id)).size,
+                    movies: new Set(mockShowtimes.map((s) => s.movie._id)).size,
+                })
+                setPagination({
+                    page: 1,
+                    pages: 1,
+                    total: mockShowtimes.length,
+                })
+            }
         } catch (error) {
             console.error("Error fetching data:", error)
             setError("Failed to load data. Please try again.")
         } finally {
             setLoading(false)
-        }
-    }
-
-    const fetchShowtimes = async () => {
-        try {
-            const params = {
-                page: pagination.page,
-                limit: 12,
-                ...filters,
-            }
-
-            // Remove empty filters
-            Object.keys(params).forEach((key) => {
-                if (params[key] === "all" || params[key] === "") delete params[key]
-            })
-
-            const data = await showtimeService.getShowtimes(params)
-            setShowtimes(data.showtimes || [])
-            setPagination({
-                page: data.page || 1,
-                pages: data.pages || 1,
-                total: data.total || 0,
-            })
-
-            return data
-        } catch (error) {
-            console.error("Error fetching showtimes:", error)
-            throw error
-        }
-    }
-
-    const fetchMovies = async () => {
-        try {
-            const data = await movieService.getMovies({ limit: 100 })
-            setMovies(data.movies || [])
-            return data
-        } catch (error) {
-            console.error("Error fetching movies:", error)
-            throw error
         }
     }
 
@@ -287,15 +237,73 @@ const AdminShowtimes = () => {
         setShowDeleteDialog(true)
     }
 
+    const handleFormSubmit = async (formData) => {
+        try {
+            console.log("Form submitted with data:", formData)
+
+            if (editingShowtime) {
+                await showtimeService.updateShowtime(editingShowtime._id, formData)
+                setSuccess("Showtime updated successfully!")
+            } else {
+                await showtimeService.createShowtime(formData)
+                setSuccess("Showtime created successfully!")
+            }
+
+            setShowForm(false)
+            setEditingShowtime(null)
+            await fetchData()
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccess(null), 3000)
+        } catch (error) {
+            console.error("Error saving showtime:", error)
+            setError(error.message || "Failed to save showtime")
+            setTimeout(() => setError(null), 5000)
+        }
+    }
+
     const confirmDeleteShowtime = async () => {
         try {
             await showtimeService.deleteShowtime(showtimeToDelete._id)
             setShowDeleteDialog(false)
             setShowtimeToDelete(null)
-            fetchData()
+            setSuccess("Showtime deleted successfully!")
+            await fetchData()
+
+            setTimeout(() => setSuccess(null), 3000)
         } catch (error) {
-            console.error("Error deleting showtime:", error)
             setError("Failed to delete showtime")
+            setTimeout(() => setError(null), 5000)
+        }
+    }
+
+    const handleBulkDelete = async () => {
+        if (selectedShowtimes.length === 0) return
+
+        try {
+            await showtimeService.bulkDeleteShowtimes(selectedShowtimes)
+            setSelectedShowtimes([])
+            setSuccess(`${selectedShowtimes.length} showtime(s) deleted successfully!`)
+            await fetchData()
+
+            setTimeout(() => setSuccess(null), 3000)
+        } catch (error) {
+            setError("Failed to delete selected showtimes")
+            setTimeout(() => setError(null), 5000)
+        }
+    }
+
+    const handleSelectShowtime = (showtimeId) => {
+        setSelectedShowtimes((prev) =>
+            prev.includes(showtimeId) ? prev.filter((id) => id !== showtimeId) : [...prev, showtimeId],
+        )
+    }
+
+    const handleSelectAll = () => {
+        if (selectedShowtimes.length === showtimes.length) {
+            setSelectedShowtimes([])
+        } else {
+            setSelectedShowtimes(showtimes.map((s) => s._id))
         }
     }
 
@@ -306,6 +314,10 @@ const AdminShowtimes = () => {
         }))
         setPagination((prev) => ({ ...prev, page: 1 }))
     }
+
+    const handleRefresh = useCallback(async () => {
+        await fetchData()
+    }, [])
 
     // Helper functions for your database structure
     const getShowtimeStatus = (showtime) => {
@@ -339,7 +351,7 @@ const AdminShowtimes = () => {
 
     const formatDateTime = (dateTimeString) => {
         const date = new Date(dateTimeString)
-        return date.toLocaleString("vi-VN", {
+        return date.toLocaleString("en-US", {
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
@@ -349,9 +361,9 @@ const AdminShowtimes = () => {
     }
 
     const formatPrice = (price) => {
-        return new Intl.NumberFormat("vi-VN", {
+        return new Intl.NumberFormat("en-US", {
             style: "currency",
-            currency: "VND",
+            currency: "USD",
         }).format(price)
     }
 
@@ -365,15 +377,15 @@ const AdminShowtimes = () => {
     }
 
     // Get unique branches and theaters for filters
-    const uniqueBranches = [...new Set(showtimes.map((s) => s.branch.name))]
-    const uniqueTheaters = [...new Set(showtimes.map((s) => s.theater.name))]
+    const uniqueBranches = [...new Set(showtimes.map((s) => s.branch?.name).filter(Boolean))]
+    const uniqueTheaters = [...new Set(showtimes.map((s) => s.theater?.name).filter(Boolean))]
 
     if (loading && showtimes.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Đang tải lịch chiếu...</p>
+                    <p className="text-gray-600">Loading showtimes...</p>
                 </div>
             </div>
         )
@@ -384,14 +396,28 @@ const AdminShowtimes = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Quản Lý Lịch Chiếu</h1>
-                    <p className="text-gray-600 mt-2">Quản lý lịch chiếu phim và thời gian biểu của rạp</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Showtime Management</h1>
+                    <p className="text-gray-600 mt-2">Manage movie showtimes and schedules</p>
                 </div>
-                <Button onClick={handleCreateShowtime} className="bg-red-600 hover:bg-red-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Thêm Lịch Chiếu Mới
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={handleRefresh} variant="outline" size="sm">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refresh
+                    </Button>
+                    <Button onClick={handleCreateShowtime} className="bg-red-600 hover:bg-red-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add New Showtime
+                    </Button>
+                </div>
             </div>
+
+            {/* Success Alert */}
+            {success && (
+                <Alert className="mb-6 border-green-200 bg-green-50">
+                    <CheckSquare className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                </Alert>
+            )}
 
             {/* Error Alert */}
             {error && (
@@ -401,24 +427,39 @@ const AdminShowtimes = () => {
                 </Alert>
             )}
 
+            {/* Bulk Actions */}
+            {selectedShowtimes.length > 0 && (
+                <Card className="mb-6 border-blue-200 bg-blue-50">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-blue-800">{selectedShowtimes.length} showtime(s) selected</span>
+                            <Button onClick={handleBulkDelete} variant="destructive" size="sm">
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Selected
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Filters */}
             <Card className="mb-8">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Filter className="w-5 h-5" />
-                        Bộ Lọc
+                        Filters
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Phim</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Movie</label>
                             <Select value={filters.movieId} onValueChange={(value) => handleFilterChange("movieId", value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Tất cả phim" />
+                                    <SelectValue placeholder="All movies" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tất cả phim</SelectItem>
+                                    <SelectItem value="all">All movies</SelectItem>
                                     {movies.map((movie) => (
                                         <SelectItem key={movie._id} value={movie._id}>
                                             {movie.title}
@@ -429,13 +470,13 @@ const AdminShowtimes = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Chi nhánh</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Branch</label>
                             <Select value={filters.branchId} onValueChange={(value) => handleFilterChange("branchId", value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Tất cả chi nhánh" />
+                                    <SelectValue placeholder="All branches" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+                                    <SelectItem value="all">All branches</SelectItem>
                                     {uniqueBranches.map((branch) => (
                                         <SelectItem key={branch} value={branch}>
                                             {branch}
@@ -446,13 +487,13 @@ const AdminShowtimes = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Phòng chiếu</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Theater</label>
                             <Select value={filters.theaterId} onValueChange={(value) => handleFilterChange("theaterId", value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Tất cả phòng" />
+                                    <SelectValue placeholder="All theaters" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tất cả phòng</SelectItem>
+                                    <SelectItem value="all">All theaters</SelectItem>
                                     {uniqueTheaters.map((theater) => (
                                         <SelectItem key={theater} value={theater}>
                                             {theater}
@@ -463,19 +504,35 @@ const AdminShowtimes = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Ngày</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All statuses</SelectItem>
+                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="ongoing">Ongoing</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                             <Input type="date" value={filters.date} onChange={(e) => handleFilterChange("date", e.target.value)} />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <Input
                                     type="text"
                                     value={filters.search}
                                     onChange={(e) => handleFilterChange("search", e.target.value)}
-                                    placeholder="Tìm kiếm lịch chiếu..."
+                                    placeholder="Search showtimes..."
                                     className="pl-10"
                                 />
                             </div>
@@ -493,8 +550,8 @@ const AdminShowtimes = () => {
                                 <Clock className="w-6 h-6" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Tổng lịch chiếu</p>
-                                <p className="text-2xl font-semibold text-gray-900">{pagination.total}</p>
+                                <p className="text-sm font-medium text-gray-600">Total Showtimes</p>
+                                <p className="text-2xl font-semibold text-gray-900">{stats.total || pagination.total}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -507,15 +564,14 @@ const AdminShowtimes = () => {
                                 <Calendar className="w-6 h-6" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Suất chiếu hôm nay</p>
+                                <p className="text-sm font-medium text-gray-600">Today's Shows</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {
+                                    {stats.today ||
                                         showtimes.filter((s) => {
                                             const today = new Date().toDateString()
                                             const showDate = new Date(s.startTime).toDateString()
                                             return today === showDate
-                                        }).length
-                                    }
+                                        }).length}
                                 </p>
                             </div>
                         </div>
@@ -529,8 +585,8 @@ const AdminShowtimes = () => {
                                 <MapPin className="w-6 h-6" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Chi nhánh hoạt động</p>
-                                <p className="text-2xl font-semibold text-gray-900">{uniqueBranches.length}</p>
+                                <p className="text-sm font-medium text-gray-600">Active Branches</p>
+                                <p className="text-2xl font-semibold text-gray-900">{stats.branches || uniqueBranches.length}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -543,9 +599,9 @@ const AdminShowtimes = () => {
                                 <Film className="w-6 h-6" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Phim đang chiếu</p>
+                                <p className="text-sm font-medium text-gray-600">Movies Showing</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {new Set(showtimes.map((s) => s.movie._id)).size}
+                                    {stats.movies || new Set(showtimes.map((s) => s.movie?._id).filter(Boolean)).size}
                                 </p>
                             </div>
                         </div>
@@ -553,38 +609,69 @@ const AdminShowtimes = () => {
                 </Card>
             </div>
 
+            {/* Select All Checkbox */}
+            {showtimes.length > 0 && (
+                <div className="mb-4">
+                    <label className="flex items-center">
+                        <button onClick={handleSelectAll} className="mr-2">
+                            {selectedShowtimes.length === showtimes.length ? (
+                                <CheckSquare className="w-5 h-5 text-blue-600" />
+                            ) : (
+                                <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                        </button>
+                        <span className="text-sm text-gray-600">Select all showtimes on this page</span>
+                    </label>
+                </div>
+            )}
+
             {/* Showtimes Grid */}
             {showtimes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {showtimes.map((showtime) => {
                         const status = getShowtimeStatus(showtime)
                         const occupancyRate = getOccupancyRate(showtime)
+                        const isSelected = selectedShowtimes.includes(showtime._id)
 
                         return (
-                            <Card key={showtime._id} className="relative hover:shadow-lg transition-shadow">
+                            <Card
+                                key={showtime._id}
+                                className={`relative hover:shadow-lg transition-shadow ${isSelected ? "ring-2 ring-blue-500" : ""}`}
+                            >
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <CardTitle className="text-lg font-semibold text-gray-900 mb-1">{showtime.movie.title}</CardTitle>
-                                            <CardDescription className="text-sm text-gray-600">
-                                                {showtime.movie.duration} phút
-                                            </CardDescription>
+                                        <div className="flex items-start space-x-3 flex-1">
+                                            <button onClick={() => handleSelectShowtime(showtime._id)} className="mt-1">
+                                                {isSelected ? (
+                                                    <CheckSquare className="w-5 h-5 text-blue-600" />
+                                                ) : (
+                                                    <Square className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </button>
+                                            <div className="flex-1">
+                                                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+                                                    {showtime.movie?.title || "Unknown Movie"}
+                                                </CardTitle>
+                                                <CardDescription className="text-sm text-gray-600">
+                                                    {showtime.movie?.duration || "N/A"} minutes
+                                                </CardDescription>
+                                            </div>
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <Badge className={getStatusColor(status)}>
-                                                {status === "scheduled" && "Đã lên lịch"}
-                                                {status === "ongoing" && "Đang chiếu"}
-                                                {status === "completed" && "Đã kết thúc"}
-                                                {status === "sold-out" && "Hết vé"}
+                                                {status === "scheduled" && "Scheduled"}
+                                                {status === "ongoing" && "Ongoing"}
+                                                {status === "completed" && "Completed"}
+                                                {status === "sold-out" && "Sold Out"}
                                             </Badge>
                                             {showtime.isFirstShow && (
                                                 <Badge variant="outline" className="text-xs">
-                                                    Suất đầu
+                                                    First Show
                                                 </Badge>
                                             )}
                                             {showtime.isLastShow && (
                                                 <Badge variant="outline" className="text-xs">
-                                                    Suất cuối
+                                                    Last Show
                                                 </Badge>
                                             )}
                                         </div>
@@ -594,12 +681,12 @@ const AdminShowtimes = () => {
                                 <CardContent className="space-y-3">
                                     <div className="flex items-center text-sm text-gray-600">
                                         <MapPin className="w-4 h-4 mr-2" />
-                                        {showtime.branch.name}
+                                        {showtime.branch?.name || "Unknown Branch"}
                                     </div>
 
                                     <div className="flex items-center text-sm text-gray-600">
                                         <Film className="w-4 h-4 mr-2" />
-                                        {showtime.theater.name}
+                                        {showtime.theater?.name || "Unknown Theater"}
                                     </div>
 
                                     <div className="flex items-center text-sm text-gray-600">
@@ -609,33 +696,33 @@ const AdminShowtimes = () => {
 
                                     <div className="flex items-center text-sm text-gray-600">
                                         <Users className="w-4 h-4 mr-2" />
-                                        {showtime.seatsAvailable}/{getTotalSeats(showtime)} ghế trống ({occupancyRate}% đã đặt)
+                                        {showtime.seatsAvailable}/{getTotalSeats(showtime)} seats available ({occupancyRate}% booked)
                                     </div>
 
                                     {/* Price Information */}
                                     <div className="bg-gray-50 p-3 rounded-lg">
                                         <div className="flex items-center mb-2">
                                             <DollarSign className="w-4 h-4 mr-1" />
-                                            <span className="text-sm font-medium">Giá vé:</span>
+                                            <span className="text-sm font-medium">Ticket Prices:</span>
                                         </div>
                                         <div className="grid grid-cols-3 gap-2 text-xs">
                                             <div className="text-center">
-                                                <div className="font-medium">Thường</div>
-                                                <div className="text-green-600">{formatPrice(showtime.price.standard)}</div>
+                                                <div className="font-medium">Standard</div>
+                                                <div className="text-green-600">{formatPrice(showtime.price?.standard || 0)}</div>
                                             </div>
                                             <div className="text-center">
                                                 <div className="font-medium">VIP</div>
-                                                <div className="text-green-600">{formatPrice(showtime.price.vip)}</div>
+                                                <div className="text-green-600">{formatPrice(showtime.price?.vip || 0)}</div>
                                             </div>
                                             <div className="text-center">
-                                                <div className="font-medium">Đôi</div>
-                                                <div className="text-green-600">{formatPrice(showtime.price.couple)}</div>
+                                                <div className="font-medium">Couple</div>
+                                                <div className="text-green-600">{formatPrice(showtime.price?.couple || 0)}</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex justify-between items-center pt-2">
-                                        <div className="text-xs text-gray-500">{showtime.branch.location.city}</div>
+                                        <div className="text-xs text-gray-500">{showtime.branch?.location?.city || "Unknown City"}</div>
                                         <div className="flex space-x-2">
                                             <Button size="sm" variant="outline" onClick={() => handleEditShowtime(showtime)}>
                                                 <Edit className="w-4 h-4" />
@@ -661,19 +748,19 @@ const AdminShowtimes = () => {
                         <div className="text-gray-500 mb-4">
                             <Clock className="mx-auto h-12 w-12" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy lịch chiếu</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No showtimes found</h3>
                         <p className="text-gray-500 mb-4">
                             {filters.search ||
                             filters.movieId !== "all" ||
                             filters.branchId !== "all" ||
                             filters.theaterId !== "all" ||
                             filters.date
-                                ? "Thử điều chỉnh bộ lọc để xem thêm kết quả."
-                                : "Bắt đầu bằng cách tạo lịch chiếu đầu tiên."}
+                                ? "Try adjusting your filters to see more results."
+                                : "Get started by creating your first showtime."}
                         </p>
                         <Button onClick={handleCreateShowtime} className="bg-red-600 hover:bg-red-700">
                             <Plus className="w-4 h-4 mr-2" />
-                            Thêm Lịch Chiếu Mới
+                            Add New Showtime
                         </Button>
                     </CardContent>
                 </Card>
@@ -687,7 +774,7 @@ const AdminShowtimes = () => {
                         onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
                         disabled={pagination.page === 1}
                     >
-                        Trước
+                        Previous
                     </Button>
 
                     {[...Array(pagination.pages)].map((_, index) => {
@@ -709,27 +796,39 @@ const AdminShowtimes = () => {
                         onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
                         disabled={pagination.page === pagination.pages}
                     >
-                        Sau
+                        Next
                     </Button>
                 </div>
+            )}
+
+            {/* Showtime Form Modal */}
+            {showForm && (
+                <ShowtimeForm
+                    showtime={editingShowtime}
+                    onSubmit={handleFormSubmit}
+                    onCancel={() => {
+                        setShowForm(false)
+                        setEditingShowtime(null)
+                    }}
+                />
             )}
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Xóa Lịch Chiếu</DialogTitle>
+                        <DialogTitle>Delete Showtime</DialogTitle>
                         <DialogDescription>
-                            Bạn có chắc chắn muốn xóa lịch chiếu phim "{showtimeToDelete?.movie?.title}" lúc{" "}
-                            {showtimeToDelete && formatDateTime(showtimeToDelete.startTime)}? Hành động này không thể hoàn tác.
+                            Are you sure you want to delete the showtime for "{showtimeToDelete?.movie?.title}" at{" "}
+                            {showtimeToDelete && formatDateTime(showtimeToDelete.startTime)}? This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button variant="destructive" onClick={confirmDeleteShowtime}>
-                            Xóa
+                            Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -740,7 +839,7 @@ const AdminShowtimes = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">Đang tải...</p>
+                        <p className="text-gray-600">Loading...</p>
                     </div>
                 </div>
             )}

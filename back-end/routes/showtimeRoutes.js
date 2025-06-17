@@ -5,19 +5,25 @@ import {
     createShowtime,
     updateShowtime,
     deleteShowtime,
-
+    bulkDeleteShowtimes,
+    deletePastShowtimes,
+    updateShowtimeStatus,
+    getShowtimeStats,
 } from '../controllers/showtimeController.js';
 
 const router = express.Router();
 
-// CRUD routes
-router.route('/')
-    .get(getAllShowtimes)
-    .post(createShowtime);
+// Public routes
+router.get('/', getAllShowtimes);
+router.get('/stats', getShowtimeStats);
+router.get('/:id', getShowtimeById);
 
-router.route('/:id')
-    .get(getShowtimeById)
-    .put(updateShowtime)
-    .delete(deleteShowtime);
+// Admin routes
+router.post('/', createShowtime);
+router.put('/:id', updateShowtime);
+router.patch('/:id/status', updateShowtimeStatus);
+router.delete('/:id', deleteShowtime);
+router.delete('/bulk', bulkDeleteShowtimes);
+router.delete('/past', deletePastShowtimes);
 
 export default router;

@@ -11,6 +11,7 @@ const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 // @access  Public
 export const getAllShowtimes = async (req, res) => {
     try {
+
         const showtimes = await Showtime.find()
             .populate('movie', 'title duration')
             .populate('branch', 'name location')
@@ -27,18 +28,14 @@ export const getAllShowtimes = async (req, res) => {
 // @access  Public
 export const getShowtimeById = async (req, res) => {
     const { id } = req.params;
-    if (!isValidObjectId(id)) {
-        return res.status(400).json({ message: 'Invalid showtime ID' });
-    }
+    if (!isValidObjectId(id)) return res.status(400).json({ message: 'Invalid showtime ID' });
 
     try {
         const showtime = await Showtime.findById(id)
             .populate('movie', 'title duration')
             .populate('branch', 'name location')
             .populate('theater', 'name capacity');
-        if (!showtime) {
-            return res.status(404).json({ message: 'Showtime not found' });
-        }
+        if (!showtime) return res.status(404).json({ message: 'Showtime not found' });
         res.json(showtime);
     } catch (err) {
         console.error(err);
@@ -63,7 +60,6 @@ export const createShowtime = async (req, res) => {
         seatsBooked = 0,
     } = req.body;
 
-    // Kiểm tra bắt buộc
     if (
         ![movie, branch, theater].every(isValidObjectId) ||
         !startTime ||
@@ -75,24 +71,19 @@ export const createShowtime = async (req, res) => {
     }
 
     try {
-        // Đảm bảo tồn tại các document liên quan
         const [mv, br, th] = await Promise.all([
             Movie.findById(movie),
             Branch.findById(branch),
             Theater.findById(theater),
         ]);
-        if (!mv)   return res.status(404).json({ message: 'Movie not found' });
-        if (!br)   return res.status(404).json({ message: 'Branch not found' });
-        if (!th)   return res.status(404).json({ message: 'Theater not found' });
+        if (!mv) return res.status(404).json({ message: 'Movie not found' });
+        if (!br) return res.status(404).json({ message: 'Branch not found' });
+        if (!th) return res.status(404).json({ message: 'Theater not found' });
 
-        // Kiểm tra logic thời gian
         const start = new Date(startTime);
-        const end   = new Date(endTime);
-        if (end <= start) {
-            return res.status(400).json({ message: 'endTime must be after startTime' });
-        }
+        const end = new Date(endTime);
+        if (end <= start) return res.status(400).json({ message: 'endTime must be after startTime' });
 
-        // Tạo mới
         const newShowtime = new Showtime({
             movie,
             branch,
@@ -101,8 +92,8 @@ export const createShowtime = async (req, res) => {
             endTime: end,
             price: {
                 standard: price.standard,
-                vip:      price.vip || 0,
-                couple:   price.couple || 0,
+                vip: price.vip || 0,
+                couple: price.couple || 0,
             },
             isFirstShow,
             isLastShow,
@@ -111,8 +102,6 @@ export const createShowtime = async (req, res) => {
         });
 
         const created = await newShowtime.save();
-
-        // Populate trước khi trả về
         const populated = await Showtime.findById(created._id)
             .populate('movie', 'title duration')
             .populate('branch', 'name location')
@@ -143,28 +132,16 @@ export const updateShowtime = async (req, res) => {
         seatsBooked,
     } = req.body;
 
-    if (!isValidObjectId(id)) {
-        return res.status(400).json({ message: 'Invalid showtime ID' });
-    }
+    if (!isValidObjectId(id)) return res.status(400).json({ message: 'Invalid showtime ID' });
 
     try {
         const showtime = await Showtime.findById(id);
-        if (!showtime) {
-            return res.status(404).json({ message: 'Showtime not found' });
-        }
+        if (!showtime) return res.status(404).json({ message: 'Showtime not found' });
 
-        // Validate any incoming ObjectId fields
-        if (movie && !isValidObjectId(movie)) {
-            return res.status(400).json({ message: 'Invalid movie ID' });
-        }
-        if (branch && !isValidObjectId(branch)) {
-            return res.status(400).json({ message: 'Invalid branch ID' });
-        }
-        if (theater && !isValidObjectId(theater)) {
-            return res.status(400).json({ message: 'Invalid theater ID' });
-        }
+        if (movie && !isValidObjectId(movie)) return res.status(400).json({ message: 'Invalid movie ID' });
+        if (branch && !isValidObjectId(branch)) return res.status(400).json({ message: 'Invalid branch ID' });
+        if (theater && !isValidObjectId(theater)) return res.status(400).json({ message: 'Invalid theater ID' });
 
-        // Validate date logic if provided
         let start, end;
         if (startTime) {
             start = new Date(startTime);
@@ -178,30 +155,25 @@ export const updateShowtime = async (req, res) => {
             return res.status(400).json({ message: 'endTime must be after startTime' });
         }
 
-        // Assign other fields if present
-        if (movie)            showtime.movie = movie;
-        if (branch)           showtime.branch = branch;
-        if (theater)          showtime.theater = theater;
+        if (movie) showtime.movie = movie;
+        if (branch) showtime.branch = branch;
+        if (theater) showtime.theater = theater;
         if (typeof isFirstShow === 'boolean') showtime.isFirstShow = isFirstShow;
-        if (typeof isLastShow  === 'boolean') showtime.isLastShow  = isLastShow;
+        if (typeof isLastShow === 'boolean') showtime.isLastShow = isLastShow;
         if (typeof seatsAvailable === 'number') showtime.seatsAvailable = seatsAvailable;
-        if (typeof seatsBooked    === 'number') showtime.seatsBooked    = seatsBooked;
+        if (typeof seatsBooked === 'number') showtime.seatsBooked = seatsBooked;
 
-        // Handle price object
         if (price) {
             const { standard, vip, couple } = price;
             if (standard == null || typeof standard !== 'number') {
                 return res.status(400).json({ message: 'price.standard is required and must be a number' });
             }
             showtime.price.standard = standard;
-            if (vip != null)    showtime.price.vip    = vip;
+            if (vip != null) showtime.price.vip = vip;
             if (couple != null) showtime.price.couple = couple;
         }
 
-        // Save and populate
         await showtime.save();
-
-        // Option 1: find lại và populate
         const populated = await Showtime.findById(id)
             .populate('movie', 'title duration')
             .populate('branch', 'name location')
@@ -213,21 +185,102 @@ export const updateShowtime = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
 // @desc    Delete a showtime
 // @route   DELETE /api/showtimes/:id
 // @access  Private/Admin
 export const deleteShowtime = async (req, res) => {
     const { id } = req.params;
-    if (!isValidObjectId(id)) {
-        return res.status(400).json({ message: 'Invalid showtime ID' });
-    }
+    if (!isValidObjectId(id)) return res.status(400).json({ message: 'Invalid showtime ID' });
 
     try {
         const deleted = await Showtime.findByIdAndDelete(id);
-        if (!deleted) {
-            return res.status(404).json({ message: 'Showtime not found' });
-        }
+        if (!deleted) return res.status(404).json({ message: 'Showtime not found' });
         res.json({ message: 'Showtime removed' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Bulk delete showtimes
+// @route   DELETE /api/showtimes/bulk
+// @access  Private/Admin
+export const bulkDeleteShowtimes = async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || !ids.every(isValidObjectId)) {
+        return res.status(400).json({ message: 'Invalid IDs array' });
+    }
+    try {
+        const result = await Showtime.deleteMany({ _id: { $in: ids } });
+        res.json({ deletedCount: result.deletedCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Delete past showtimes
+// @route   DELETE /api/showtimes/past
+// @access  Private/Admin
+export const deletePastShowtimes = async (req, res) => {
+    const { beforeDate } = req.body;
+    const date = new Date(beforeDate);
+    if (isNaN(date)) {
+        return res.status(400).json({ message: 'Invalid beforeDate' });
+    }
+    try {
+        const result = await Showtime.deleteMany({ startTime: { $lt: date } });
+        res.json({ deletedCount: result.deletedCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update showtime status
+// @route   PATCH /api/showtimes/:id/status
+// @access  Private/Admin
+export const updateShowtimeStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!isValidObjectId(id)) return res.status(400).json({ message: 'Invalid showtime ID' });
+    if (typeof status !== 'string') return res.status(400).json({ message: 'Invalid status' });
+
+    try {
+        const showtime = await Showtime.findById(id);
+        if (!showtime) return res.status(404).json({ message: 'Showtime not found' });
+        showtime.status = status;
+        await showtime.save();
+        const populated = await Showtime.findById(id)
+            .populate('movie', 'title duration')
+            .populate('branch', 'name location')
+            .populate('theater', 'name capacity');
+        res.json(populated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get showtime statistics
+// @route   GET /api/showtimes/stats
+// @access  Private/Admin
+export const getShowtimeStats = async (req, res) => {
+    try {
+        const total = await Showtime.countDocuments();
+        const upcoming = await Showtime.countDocuments({ startTime: { $gte: new Date() } });
+        const past = await Showtime.countDocuments({ startTime: { $lt: new Date() } });
+
+        // Example: group by movie
+        const byMovie = await Showtime.aggregate([
+            { $group: { _id: '$movie', count: { $sum: 1 } } },
+            { $lookup: { from: 'movies', localField: '_id', foreignField: '_id', as: 'movie' } },
+            { $unwind: '$movie' },
+            { $project: { _id: 0, movieId: '$movie._id', title: '$movie.title', count: 1 } }
+        ]);
+
+        res.json({ total, upcoming, past, byMovie });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server Error' });

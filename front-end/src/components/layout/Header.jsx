@@ -36,6 +36,8 @@ const Header = () => {
                 >
                   Movies
                 </Link>
+
+
                 {user && user.role === 'admin' && (
                     <Link
                         to="/userList"
