@@ -21,6 +21,7 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import seatRoutes from "./routes/seatRoutes.js";
 import seatStatusRoutes from "./routes/seatStatusRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -63,6 +64,7 @@ app.use("/api/showtimes", showtimeRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/seats", seatRoutes);
 app.use("/api/seat-status", seatStatusRoutes);
+app.use("/api/users", userRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
