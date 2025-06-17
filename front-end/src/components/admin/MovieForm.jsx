@@ -550,7 +550,7 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
 
               {/* Poster Upload Type Selector */}
               <div className="flex space-x-4 mb-4">
-                <label className="flex items-center">
+                {/* <label className="flex items-center">
                   <input
                     type="radio"
                     value="url"
@@ -559,7 +559,7 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
                     className="mr-2"
                   />
                   <span className="text-sm">Enter URL</span>
-                </label>
+                </label> */}
                 <label className="flex items-center">
                   <input
                     type="radio"
@@ -571,20 +571,6 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
                   <span className="text-sm">Upload File</span>
                 </label>
               </div>
-
-              {/* Poster URL Input */}
-              {/*{posterUploadType === "url" && (*/}
-              {/*  <input*/}
-              {/*    type="url"*/}
-              {/*    name="poster"*/}
-              {/*    value={formData.poster}*/}
-              {/*    onChange={handlePosterUrlChange}*/}
-              {/*    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${*/}
-              {/*      errors.poster ? "border-red-500" : "border-gray-300"*/}
-              {/*    }`}*/}
-              {/*    placeholder="https://example.com/poster.jpg"*/}
-              {/*  />*/}
-              {/*)}*/}
 
               {/* Poster File Upload */}
               {posterUploadType === "file" && (
@@ -629,7 +615,7 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
             </div>
 
             {/* Trailer URL */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Trailer URL
               </label>
@@ -641,7 +627,7 @@ const MovieForm = ({ movie, onSubmit, onCancel }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="https://youtube.com/watch?v=..."
               />
-            </div>
+            </div> */}
 
             {/* Status */}
             <div>

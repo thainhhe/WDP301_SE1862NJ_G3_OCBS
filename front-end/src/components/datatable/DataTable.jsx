@@ -3,9 +3,9 @@ import {
     Box, Paper, TableContainer, Table, TableHead, TableBody, TableRow, TableCell,
     Pagination, CircularProgress, Typography, Checkbox, Select, MenuItem, TableSortLabel
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+
 import TableToolbar from './TableToolbar';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebounce } from '@hooks/useDebounce.js';
 
 /**
  * A reusable data table component with sorting, filtering, searching, pagination, and selection.
@@ -17,6 +17,7 @@ import { useDebounce } from '../../hooks/useDebounce';
  * @param {Array<object>} props.filterOptions - Configuration for filter dropdowns.
  * @param {string} props.searchPlaceholder - Placeholder text for the search input.
  * @param {Function} [props.onAdd] - Callback function for the "Add New" button.
+ * @param {Function} [props.onRowClick] - Callback function when a row is clicked.
  */
 const DataTable = ({
                        fetchData,
@@ -26,8 +27,9 @@ const DataTable = ({
                        filterOptions,
                        searchPlaceholder,
                        onAdd,
+                       onRowClick, // <-- Prop mới để xử lý click hàng
                    }) => {
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // <-- Bỏ đi
 
     // Data and Loading State
     const [data, setData] = useState([]);
@@ -113,8 +115,11 @@ const DataTable = ({
         setPage(1);
     };
 
+    // Sửa lại handler này
     const handleRowClick = (id) => {
-        navigate(`/admin/${entityName.toLowerCase()}s/${id}`);
+        if (onRowClick) {
+            onRowClick(id); // Gọi hàm được truyền từ component cha
+        }
     };
 
     const handleSelectAllClick = (event) => {
@@ -208,7 +213,7 @@ const DataTable = ({
                                     return (
                                         <TableRow
                                             hover
-                                            onClick={() => handleRowClick(item[entityKey])}
+                                            onClick={() => handleRowClick(item[entityKey])} // Sử dụng handler đã sửa
                                             role="button"
                                             tabIndex={-1}
                                             key={item[entityKey]}

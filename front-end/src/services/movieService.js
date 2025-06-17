@@ -12,6 +12,7 @@ export const movieService = {
   },
 
   async createMovie(movieData) {
+    // Chỉ cần gọi api.post, interceptor sẽ tự động lo phần còn lại
     const response = await api.post("/movies", movieData);
     return response.data;
   },
