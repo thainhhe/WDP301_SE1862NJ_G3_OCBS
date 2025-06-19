@@ -10,7 +10,7 @@ import ProtectedRoute from "@router/ProtectedRoute";
 // Pages
 import Home from "@pages/Home";
 import Movies from "@pages/Movies";
-import ShowtimesPage from "@pages/ShowtimesPage"
+import ShowtimesPage from "@pages/ShowtimesPage";
 import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
 
@@ -26,6 +26,7 @@ import AdminMovies from "@pages/admin/AdminMovies";
 import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
 import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
+import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
 
 const router = createBrowserRouter([
   {
@@ -89,6 +90,7 @@ const router = createBrowserRouter([
       { path: "movies", element: <AdminMovies /> },
       { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
+      { path: "seat-layouts", element: <SeatLayoutManagement /> },
     ],
   },
 ]);

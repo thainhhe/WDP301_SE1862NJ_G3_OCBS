@@ -23,6 +23,7 @@ import seatRoutes from "./routes/seatRoutes.js";
 import seatStatusRoutes from "./routes/seatStatusRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import theaterRoutes from "./routes/theaterRoutes.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -62,11 +63,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/showtimes", showtimeRoutes);
-app.use('/api/branches', branchRoutes);
+app.use("/api/branches", branchRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/seats", seatRoutes);
 app.use("/api/seat-status", seatStatusRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/theaters", theaterRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

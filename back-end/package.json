@@ -1,5 +1,5 @@
 {
-  "name": "cinema-tickets-backend",
+  "name": "ocbs-backend",
   "version": "1.0.0",
   "description": "Backend for Cinema Tickets booking system",
   "main": "server.js",

@@ -3,6 +3,7 @@ import SeatLayout from "../models/seatLayoutModel.js";
 import Seat from "../models/seatModel.js";
 import SeatStatus from "../models/seatStatusModel.js";
 import Branch from "../models/branchModel.js";
+import Theater from "../models/theaterModel.js"; // ✅ Import Theater model
 import Showtime from "../models/showtimeModel.js";
 
 // Create seat layout - POST /api/seats/layouts - Private/Admin
@@ -21,19 +22,25 @@ const createSeatLayout = asyncHandler(async (req, res) => {
     screenPosition,
   } = req.body;
 
-  // Verify branch and theater exist
+  // ✅ Verify branch exists
   const branchDoc = await Branch.findById(branch);
   if (!branchDoc) {
     res.status(404);
     throw new Error("Branch not found");
   }
 
-  const theaterExists = branchDoc.theaters.some(
-    (t) => t._id.toString() === theater
-  );
-  if (!theaterExists) {
+  // ✅ Verify theater exists and belongs to branch
+  const theaterDoc = await Theater.findById(theater);
+  if (!theaterDoc) {
     res.status(404);
-    throw new Error("Theater not found in this branch");
+    throw new Error("Theater not found");
+  }
+
+  // ✅ Check if theater belongs to branch
+  const theaterInBranch = branchDoc.theaters.includes(theater);
+  if (!theaterInBranch) {
+    res.status(400);
+    throw new Error("Theater does not belong to this branch");
   }
 
   const seatLayout = await SeatLayout.create({
@@ -73,6 +80,7 @@ const getSeatLayouts = asyncHandler(async (req, res) => {
   const count = await SeatLayout.countDocuments(filter);
   const seatLayouts = await SeatLayout.find(filter)
     .populate("branch", "name location")
+    .populate("theater", "name capacity") // ✅ Populate theater directly
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip((page - 1) * limit);
@@ -89,13 +97,7 @@ const getSeatLayouts = asyncHandler(async (req, res) => {
 const getSeatLayoutById = asyncHandler(async (req, res) => {
   const seatLayout = await SeatLayout.findById(req.params.id)
     .populate("branch", "name location")
-    .populate({
-      path: "branch",
-      populate: {
-        path: "theaters",
-        match: { _id: req.query.theater },
-      },
-    });
+    .populate("theater", "name capacity seatLayout"); // ✅ Populate theater directly
 
   if (seatLayout) {
     res.json(seatLayout);
@@ -110,7 +112,26 @@ const updateSeatLayout = asyncHandler(async (req, res) => {
   const seatLayout = await SeatLayout.findById(req.params.id);
 
   if (seatLayout) {
+    // ✅ If theater is being updated, verify it exists and belongs to branch
+    if (
+      req.body.theater &&
+      req.body.theater !== seatLayout.theater.toString()
+    ) {
+      const theaterDoc = await Theater.findById(req.body.theater);
+      if (!theaterDoc) {
+        res.status(404);
+        throw new Error("Theater not found");
+      }
+
+      const branchDoc = await Branch.findById(seatLayout.branch);
+      if (!branchDoc.theaters.includes(req.body.theater)) {
+        res.status(400);
+        throw new Error("Theater does not belong to this branch");
+      }
+    }
+
     seatLayout.name = req.body.name || seatLayout.name;
+    seatLayout.theater = req.body.theater || seatLayout.theater;
     seatLayout.rows = req.body.rows || seatLayout.rows;
     seatLayout.seatsPerRow = req.body.seatsPerRow || seatLayout.seatsPerRow;
     seatLayout.rowLabels = req.body.rowLabels || seatLayout.rowLabels;
@@ -138,18 +159,7 @@ const deleteSeatLayout = asyncHandler(async (req, res) => {
   const seatLayout = await SeatLayout.findById(req.params.id);
 
   if (seatLayout) {
-    // Check if layout is being used by any seats
-    const seatsUsingLayout = await Seat.countDocuments({
-      theater: seatLayout.theater,
-      branch: seatLayout.branch,
-    });
-
-    if (seatsUsingLayout > 0) {
-      res.status(400);
-      throw new Error("Cannot delete seat layout that is being used by seats");
-    }
-
-    await seatLayout.deleteOne();
+    await seatLayout.remove();
     res.json({ message: "Seat layout removed" });
   } else {
     res.status(404);
@@ -161,7 +171,7 @@ const deleteSeatLayout = asyncHandler(async (req, res) => {
 const generateSeatsFromLayout = asyncHandler(async (req, res) => {
   const { layoutId } = req.body;
 
-  const seatLayout = await SeatLayout.findById(layoutId);
+  const seatLayout = await SeatLayout.findById(layoutId).populate("theater");
   if (!seatLayout) {
     res.status(404);
     throw new Error("Seat layout not found");
@@ -169,7 +179,7 @@ const generateSeatsFromLayout = asyncHandler(async (req, res) => {
 
   // Clear existing seats for this theater
   await Seat.deleteMany({
-    theater: seatLayout.theater,
+    theater: seatLayout.theater._id,
     branch: seatLayout.branch,
   });
 
@@ -222,7 +232,7 @@ const generateSeatsFromLayout = asyncHandler(async (req, res) => {
       const yPosition = rowIndex * rowSpacing;
 
       seats.push({
-        theater: seatLayout.theater,
+        theater: seatLayout.theater._id,
         branch: seatLayout.branch,
         row: rowLabel,
         number: seatNumber,
@@ -240,7 +250,7 @@ const generateSeatsFromLayout = asyncHandler(async (req, res) => {
   const createdSeats = await Seat.insertMany(seats);
 
   // Update adjacent seats relationships
-  await updateAdjacentSeats(seatLayout.theater, seatLayout.branch);
+  await updateAdjacentSeats(seatLayout.theater._id, seatLayout.branch);
 
   res.status(201).json({
     message: "Seats generated successfully",
@@ -259,6 +269,13 @@ const getSeatsByTheater = asyncHandler(async (req, res) => {
     throw new Error("Branch ID is required");
   }
 
+  // ✅ Verify theater exists
+  const theater = await Theater.findById(theaterId);
+  if (!theater) {
+    res.status(404);
+    throw new Error("Theater not found");
+  }
+
   const seats = await Seat.find({
     theater: theaterId,
     branch: branch,
@@ -272,7 +289,7 @@ const getSeatsByTheater = asyncHandler(async (req, res) => {
 const getSeatAvailability = asyncHandler(async (req, res) => {
   const { showtimeId } = req.params;
 
-  const showtime = await Showtime.findById(showtimeId);
+  const showtime = await Showtime.findById(showtimeId).populate("theater"); // ✅ Populate theater directly
   if (!showtime) {
     res.status(404);
     throw new Error("Showtime not found");
@@ -280,7 +297,7 @@ const getSeatAvailability = asyncHandler(async (req, res) => {
 
   // Get all seats for this theater
   const seats = await Seat.find({
-    theater: showtime.theater,
+    theater: showtime.theater._id,
     branch: showtime.branch,
     isActive: true,
   }).sort({ row: 1, number: 1 });
@@ -323,7 +340,7 @@ const getSeatAvailability = asyncHandler(async (req, res) => {
 const initializeSeatStatusesForShowtime = asyncHandler(async (req, res) => {
   const { showtimeId } = req.body;
 
-  const showtime = await Showtime.findById(showtimeId);
+  const showtime = await Showtime.findById(showtimeId).populate("theater");
   if (!showtime) {
     res.status(404);
     throw new Error("Showtime not found");
@@ -331,7 +348,7 @@ const initializeSeatStatusesForShowtime = asyncHandler(async (req, res) => {
 
   // Get all seats for this theater
   const seats = await Seat.find({
-    theater: showtime.theater,
+    theater: showtime.theater._id,
     branch: showtime.branch,
     isActive: true,
   });
@@ -362,7 +379,7 @@ const initializeSeatStatusesForShowtime = asyncHandler(async (req, res) => {
   });
 });
 
-// Helper functions
+// Helper functions remain the same
 const generateRowLabels = (rows) => {
   const labels = [];
   for (let i = 0; i < rows; i++) {
