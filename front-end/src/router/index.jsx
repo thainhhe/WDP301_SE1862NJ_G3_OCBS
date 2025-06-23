@@ -24,6 +24,7 @@ import UserList from "@pages/admin/UserManagement/UserList";
 import AdminMovies from "@pages/admin/AdminMovies";
 import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
+import EmployeeDashboardPage from "@pages/EmployeeDashboardPage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <AdminDashboardPage /> },
+      { path: "employee-dashboard", element: <EmployeeDashboardPage /> },
       { path: "movies", element: <AdminMovies /> },
       { path: "users", element: <UserList /> },
     ],
