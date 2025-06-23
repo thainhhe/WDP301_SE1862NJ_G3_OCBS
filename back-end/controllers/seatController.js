@@ -289,11 +289,20 @@ const getSeatsByTheater = asyncHandler(async (req, res) => {
 const getSeatAvailability = asyncHandler(async (req, res) => {
   const { showtimeId } = req.params;
 
+  console.log("🎬 Getting seat availability for showtime:", showtimeId); // ✅ Debug log
+
   const showtime = await Showtime.findById(showtimeId).populate("theater"); // ✅ Populate theater directly
   if (!showtime) {
+    console.log("❌ Showtime not found:", showtimeId); // ✅ Debug log
     res.status(404);
     throw new Error("Showtime not found");
   }
+
+  console.log("✅ Showtime found:", {
+    id: showtime._id,
+    theater: showtime.theater?._id,
+    branch: showtime.branch,
+  }); // ✅ Debug log
 
   // Get all seats for this theater
   const seats = await Seat.find({
@@ -302,10 +311,14 @@ const getSeatAvailability = asyncHandler(async (req, res) => {
     isActive: true,
   }).sort({ row: 1, number: 1 });
 
+  console.log("🪑 Found seats:", seats.length); // ✅ Debug log
+
   // Get seat statuses for this showtime
   const seatStatuses = await SeatStatus.find({
     showtime: showtimeId,
   }).populate("seat");
+
+  console.log("📊 Found seat statuses:", seatStatuses.length); // ✅ Debug log
 
   // Create seat availability map
   const seatAvailabilityMap = {};
@@ -332,6 +345,11 @@ const getSeatAvailability = asyncHandler(async (req, res) => {
       availability,
     };
   });
+
+  console.log(
+    "🎯 Returning seats with availability:",
+    seatsWithAvailability.length
+  ); // ✅ Debug log
 
   res.json(seatsWithAvailability);
 });

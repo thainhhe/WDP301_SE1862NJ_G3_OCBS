@@ -480,7 +480,7 @@ const SeatLayoutEditor = ({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   <SelectItem value="true">Active</SelectItem>
                   <SelectItem value="false">Inactive</SelectItem>
                 </SelectContent>
@@ -498,7 +498,7 @@ const SeatLayoutEditor = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {branches.map((branch) => (
                     <SelectItem key={branch._id} value={branch._id}>
                       {branch.name}
@@ -520,7 +520,7 @@ const SeatLayoutEditor = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select theater" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {theaters.map((theater) => (
                     <SelectItem key={theater._id} value={theater._id}>
                       {theater.name}
@@ -691,7 +691,7 @@ const SeatLayoutEditor = ({
           <div className="w-full h-2 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 rounded-full"></div>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+          <div className="space-y-6 p-4 max-h-[60vh] overflow-y-auto">
             {rowLabels.map((row) => (
               <div
                 key={row}

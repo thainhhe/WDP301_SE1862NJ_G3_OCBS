@@ -37,7 +37,6 @@ import {
 import SeatLayoutEditor from "../../components/admin/SeatLayoutEditor";
 import { seatService, theaterService } from "../../services/seatService";
 import { branchService } from "../../services/branchService";
-import { createPortal } from "react-dom";
 
 const SeatLayoutManagement = () => {
   const [layouts, setLayouts] = useState([]);
@@ -46,14 +45,10 @@ const SeatLayoutManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  // Form states
   const [showEditor, setShowEditor] = useState(false);
   const [editingLayout, setEditingLayout] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [layoutToDelete, setLayoutToDelete] = useState(null);
-
-  // Filter states
   const [filters, setFilters] = useState({
     branchId: "all",
     theaterId: "all",
@@ -76,7 +71,7 @@ const SeatLayoutManagement = () => {
         branchService.getBranches({ limit: 100 }),
         seatService.getSeatLayouts({ limit: 100 }),
       ]);
-
+      console.log("Branches data:", branchesData);
       setBranches(branchesData.branches || branchesData || []);
       setLayouts(layoutsData.seatLayouts || layoutsData || []);
     } catch (error) {
@@ -110,7 +105,6 @@ const SeatLayoutManagement = () => {
         setTheaters([]);
         return;
       }
-
       const data = await theaterService.getTheatersByBranch(branchId);
       setTheaters(data || []);
     } catch (error) {
@@ -119,19 +113,16 @@ const SeatLayoutManagement = () => {
     }
   };
 
-  // REQ-3.1: Tạo bố trí ghế
   const handleCreateLayout = () => {
     setEditingLayout(null);
     setShowEditor(true);
   };
 
-  // REQ-3.2: Cập nhật bố trí ghế
   const handleEditLayout = (layout) => {
     setEditingLayout(layout);
     setShowEditor(true);
   };
 
-  // REQ-3.3: Xóa bố trí ghế
   const handleDeleteLayout = (layout) => {
     setLayoutToDelete(layout);
     setShowDeleteDialog(true);
@@ -144,7 +135,6 @@ const SeatLayoutManagement = () => {
       setShowDeleteDialog(false);
       setLayoutToDelete(null);
       await fetchLayouts();
-
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       setError(error.message || "Failed to delete seat layout");
@@ -161,11 +151,9 @@ const SeatLayoutManagement = () => {
         await seatService.createSeatLayout(layoutData);
         setSuccess("Seat layout created successfully!");
       }
-
       setShowEditor(false);
       setEditingLayout(null);
       await fetchLayouts();
-
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       setError(error.message || "Failed to save seat layout");
@@ -189,8 +177,6 @@ const SeatLayoutManagement = () => {
       ...prev,
       [key]: value,
     }));
-
-    // Reset theater filter when branch changes
     if (key === "branchId") {
       setFilters((prev) => ({ ...prev, theaterId: "all" }));
       fetchTheatersByBranch(value);
@@ -210,7 +196,6 @@ const SeatLayoutManagement = () => {
         return total + (range.endSeat - range.startSeat + 1);
       }, 0) || 0;
     const standardSeats = calculateTotalSeats(layout) - vipSeats - coupleSeats;
-
     return { standard: standardSeats, vip: vipSeats, couple: coupleSeats };
   };
 
@@ -224,32 +209,6 @@ const SeatLayoutManagement = () => {
       </div>
     );
   }
-
-  const renderModal = () => {
-    if (!showEditor) return null;
-
-    return createPortal(
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000] p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {editingLayout ? "Edit Seat Layout" : "Create New Seat Layout"}
-            </h2>
-            <SeatLayoutEditor
-              layout={editingLayout}
-              branches={branches}
-              onSave={handleSaveLayout}
-              onCancel={() => {
-                setShowEditor(false);
-                setEditingLayout(null);
-              }}
-            />
-          </div>
-        </div>
-      </div>,
-      document.getElementById("modal-root") || document.body
-    );
-  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -414,7 +373,6 @@ const SeatLayoutManagement = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Layout Info */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">
@@ -432,7 +390,6 @@ const SeatLayoutManagement = () => {
                     </div>
                   </div>
 
-                  {/* Seat Types */}
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-gray-700">
                       Seat Types:
@@ -465,7 +422,6 @@ const SeatLayoutManagement = () => {
                     </div>
                   </div>
 
-                  {/* Mini Preview */}
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <div className="text-xs text-center text-gray-600 mb-2 flex items-center justify-center">
                       <Monitor className="w-3 h-3 mr-1" />
@@ -518,7 +474,6 @@ const SeatLayoutManagement = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex justify-between items-center pt-2 border-t">
                     <div className="text-xs text-gray-500">
                       Created: {new Date(layout.createdAt).toLocaleDateString()}
@@ -582,7 +537,7 @@ const SeatLayoutManagement = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="z-[9998]">
           <DialogHeader>
             <DialogTitle>Delete Seat Layout</DialogTitle>
             <DialogDescription>
@@ -605,7 +560,29 @@ const SeatLayoutManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {renderModal()}
+      {/* Modal for SeatLayoutEditor */}
+      {showEditor && (
+        <Dialog open={showEditor} onOpenChange={setShowEditor}>
+          <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden z-[9999]">
+            <DialogHeader className="pb-4">
+              <DialogTitle>
+                {editingLayout ? "Edit Seat Layout" : "Create New Seat Layout"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[calc(95vh-120px)] overflow-y-auto pr-2">
+              <SeatLayoutEditor
+                layout={editingLayout}
+                branches={branches}
+                onSave={handleSaveLayout}
+                onCancel={() => {
+                  setShowEditor(false);
+                  setEditingLayout(null);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

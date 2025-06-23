@@ -13,6 +13,7 @@ import Movies from "@pages/Movies";
 import ShowtimesPage from "@pages/ShowtimesPage";
 import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
+import SeatSelectionPage from "@pages/SeatSelectionPage";
 
 // Auth Pages
 import LoginPage from "@pages/auth/LoginPage";
@@ -38,6 +39,14 @@ const router = createBrowserRouter([
       { path: "movies", element: <Movies /> },
       { path: "movies/:id", element: <MovieDetails /> },
       { path: "showtimes", element: <ShowtimesPage /> },
+      {
+        path: "seat-selection/:showtimeId",
+        element: (
+          <ProtectedRoute>
+            <SeatSelectionPage />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "profile",
         element: (
