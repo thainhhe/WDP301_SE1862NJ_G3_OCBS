@@ -38,6 +38,12 @@ const createTheater = asyncHandler(async (req, res) => {
   res.status(201).json(theater);
 });
 
+// Get all theaters - GET /api/theaters - Public
+const getAllTheaters = asyncHandler(async (req, res) => {
+  const theaters = await Theater.find();
+  res.json(theaters);
+});
+
 // Get theaters by branch - GET /api/theaters/branch/:branchId - Public
 const getTheatersByBranch = asyncHandler(async (req, res) => {
   const { branchId } = req.params;
@@ -110,8 +116,8 @@ const deleteTheater = asyncHandler(async (req, res) => {
 
     // Remove from branch
     await Branch.updateMany(
-      { theaters: theater._id },
-      { $pull: { theaters: theater._id } }
+        { theaters: theater._id },
+        { $pull: { theaters: theater._id } }
     );
 
     await theater.deleteOne();
@@ -124,6 +130,7 @@ const deleteTheater = asyncHandler(async (req, res) => {
 
 export {
   createTheater,
+  getAllTheaters,
   getTheatersByBranch,
   getTheaterById,
   updateTheater,
