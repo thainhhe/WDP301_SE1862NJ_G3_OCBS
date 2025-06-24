@@ -40,12 +40,18 @@ const Movies = () => {
         page: pagination.page,
         limit: 12,
         ...filters,
+        status: filters.status || undefined, // Đảm bảo status không phải "ended"
       };
 
-      // Remove empty filters
+      // Xóa các bộ lọc rỗng
       Object.keys(params).forEach((key) => {
-        if (params[key] === "") delete params[key];
+        if (params[key] === "" || params[key] === undefined) delete params[key];
       });
+
+      // Loại bỏ trạng thái "ended"
+      if (!params.status) {
+        params.status = { $ne: "ended" }; // Câu lệnh MongoDB để loại bỏ "ended"
+      }
 
       const data = await movieService.getMovies(params);
       setMovies(data.movies);
@@ -55,12 +61,11 @@ const Movies = () => {
         total: data.total,
       });
     } catch (error) {
-      console.error("Error fetching movies:", error);
+      console.error("Lỗi khi lấy danh sách phim:", error);
     } finally {
       setLoading(false);
     }
   };
-
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -112,7 +117,6 @@ const Movies = () => {
               <option value="">All Status</option>
               <option value="now-showing">Now Showing</option>
               <option value="coming-soon">Coming Soon</option>
-              <option value="ended">Ended</option>
             </select>
           </div>
           <div>

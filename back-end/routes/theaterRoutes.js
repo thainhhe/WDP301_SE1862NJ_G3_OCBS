@@ -1,18 +1,22 @@
-import express from 'express';
+import express from "express";
 import {
-    createTheater,
-    getAllTheaters,
-    getTheaterById,
-    updateTheater,
-    deleteTheater
-} from '../controllers/theaterController.js';
+  createTheater,
+  getTheatersByBranch,
+  getTheaterById,
+  updateTheater,
+  deleteTheater,
+} from "../controllers/theaterController.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post('/', createTheater);
-router.get('/', getAllTheaters);
-router.get('/:id', getTheaterById);
-router.put('/:id', updateTheater);
-router.delete('/:id', deleteTheater);
+// Public routes
+router.get("/branch/:branchId", getTheatersByBranch);
+router.get("/:id", getTheaterById);
+
+// Admin routes
+router.post("/", protect, admin, createTheater);
+router.put("/:id", protect, admin, updateTheater);
+router.delete("/:id", protect, admin, deleteTheater);
 
 export default router;

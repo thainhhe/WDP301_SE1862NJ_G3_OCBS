@@ -1,10 +1,11 @@
+// MovieDetails.jsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { movieService } from "@services/movieService";
-// import { showtimeService } from "@services/showtimeService";
-import LoadingSpinner from "@components/ui/LoadingSpinner";
+import { movieService } from "../services/movieService";
+import { showtimeService } from "../services/showtimeService";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { toast } from "react-toastify";
 
 const MovieDetails = () => {
@@ -12,6 +13,19 @@ const MovieDetails = () => {
   const [movie, setMovie] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false); // Thêm state để xử lý lỗi ảnh
+
+  // Hàm lấy URL ảnh từ MovieCard.jsx
+  const getImageUrl = (posterPath) => {
+    if (!posterPath) return "https://via.placeholder.com/400x600?text=No+Image";
+
+    if (posterPath.startsWith("http")) {
+      return posterPath;
+    }
+
+    const cleanPath = posterPath.replace(/^\/+/, "");
+    return `http://localhost:5000/${cleanPath}`;
+  };
 
   useEffect(() => {
     fetchMovieDetails();
@@ -20,16 +34,24 @@ const MovieDetails = () => {
   const fetchMovieDetails = async () => {
     try {
       setLoading(true);
+      console.log("Đang tải phim với ID:", id);
       const [movieData, showtimesData] = await Promise.all([
         movieService.getMovieById(id),
-        showtimeService?.getShowtimesByMovie(id),
+        showtimeService.getShowtimes({ movie: id }),
       ]);
 
       setMovie(movieData);
-      setShowtimes(showtimesData);
+      setShowtimes(
+        Array.isArray(showtimesData)
+          ? showtimesData
+          : showtimesData.showtimes ||
+              showtimesData.data ||
+              showtimesData.results ||
+              []
+      );
     } catch (error) {
-      toast.error("Failed to fetch movie details");
-      console.error("Error fetching movie details:", error);
+      toast.error("Không thể tải chi tiết phim");
+      console.error("Lỗi khi tải chi tiết phim:", error);
     } finally {
       setLoading(false);
     }
@@ -38,14 +60,14 @@ const MovieDetails = () => {
   const formatDuration = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+    return `${hours}g ${mins}p`;
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      "now-showing": { color: "bg-green-500", text: "Now Showing" },
-      "coming-soon": { color: "bg-blue-500", text: "Coming Soon" },
-      ended: { color: "bg-gray-500", text: "Ended" },
+      "now-showing": { color: "bg-green-500", text: "Đang chiếu" },
+      "coming-soon": { color: "bg-blue-500", text: "Sắp chiếu" },
+      ended: { color: "bg-gray-500", text: "Đã kết thúc" },
     };
 
     const config = statusConfig[status] || statusConfig["coming-soon"];
@@ -67,10 +89,10 @@ const MovieDetails = () => {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Movie Not Found
+          Không tìm thấy phim
         </h1>
         <Link to="/" className="text-red-600 hover:text-red-700">
-          Back to Home
+          Quay lại trang chủ
         </Link>
       </div>
     );
@@ -81,24 +103,29 @@ const MovieDetails = () => {
       {/* Hero Section */}
       <div className="relative bg-black">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent z-10"></div>
-        <img
-          src={movie.poster || "/placeholder.svg"}
-          alt={movie.title}
-          className="w-full h-96 object-cover opacity-30"
-          onError={(e) => {
-            e.target.src = "/placeholder.svg?height=400&width=800";
-          }}
-        />
+        {imageError ? (
+          <div className="w-full h-96 bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-500">{movie.title || "No Image"}</span>
+          </div>
+        ) : (
+          <img
+            src={getImageUrl(movie.poster)}
+            alt={movie.title}
+            className="w-full h-96 object-cover opacity-30"
+            onError={(e) => {
+              console.log("Image failed to load:", e.target.src);
+              setImageError(true);
+            }}
+          />
+        )}
 
         <div className="absolute inset-0 z-20 flex items-center">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl">
               <div className="mb-4">{getStatusBadge(movie.status)}</div>
-
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 {movie.title}
               </h1>
-
               <div className="flex items-center space-x-6 text-white mb-6">
                 <span className="flex items-center">
                   <svg
@@ -114,16 +141,13 @@ const MovieDetails = () => {
                   </svg>
                   {formatDuration(movie.duration)}
                 </span>
-
                 <span>{movie.language}</span>
-
                 {movie.hotness > 0 && (
                   <span className="flex items-center">
                     🔥 {movie.hotness}/10
                   </span>
                 )}
               </div>
-
               <div className="flex flex-wrap gap-2 mb-6">
                 {movie.genre.map((genre, index) => (
                   <span
@@ -134,13 +158,12 @@ const MovieDetails = () => {
                   </span>
                 ))}
               </div>
-
               {movie.status === "now-showing" && showtimes.length > 0 && (
                 <Link
                   to={`/showtimes?movieId=${movie._id}`}
                   className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 inline-block"
                 >
-                  Book Tickets
+                  Đặt vé
                 </Link>
               )}
             </div>
@@ -155,34 +178,17 @@ const MovieDetails = () => {
           <div className="lg:col-span-2">
             {/* Synopsis */}
             <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Synopsis
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Tóm tắt</h2>
               <p className="text-gray-700 leading-relaxed text-lg">
                 {movie.description}
               </p>
             </section>
 
-            {/* Trailer */}
-            {movie.trailer && (
-              <section className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  Trailer
-                </h2>
-                <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                  <iframe
-                    src={movie.trailer.replace("watch?v=", "embed/")}
-                    title={`${movie.title} Trailer`}
-                    className="w-full h-full"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              </section>
-            )}
-
             {/* Cast */}
             <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Cast</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Diễn viên
+              </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {movie.cast.map((actor, index) => (
                   <div key={index} className="text-center">
@@ -210,53 +216,47 @@ const MovieDetails = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <h3 className="text-xl font-bold text-gray-900 mb-6">
-                Movie Info
+                Thông tin phim
               </h3>
-
               <div className="space-y-4">
                 <div>
                   <span className="text-sm font-medium text-gray-500">
-                    Director
+                    Đạo diễn
                   </span>
                   <p className="text-gray-900">{movie.director}</p>
                 </div>
-
                 <div>
                   <span className="text-sm font-medium text-gray-500">
-                    Duration
+                    Thời lượng
                   </span>
                   <p className="text-gray-900">
                     {formatDuration(movie.duration)}
                   </p>
                 </div>
-
                 <div>
                   <span className="text-sm font-medium text-gray-500">
-                    Language
+                    Ngôn ngữ
                   </span>
                   <p className="text-gray-900">{movie.language}</p>
                 </div>
-
                 <div>
                   <span className="text-sm font-medium text-gray-500">
-                    Release Date
+                    Ngày phát hành
                   </span>
                   <p className="text-gray-900">
                     {new Date(movie.releaseDate).toLocaleDateString()}
                   </p>
                 </div>
-
                 <div>
                   <span className="text-sm font-medium text-gray-500">
-                    Status
+                    Trạng thái
                   </span>
                   <div className="mt-1">{getStatusBadge(movie.status)}</div>
                 </div>
-
                 {movie.hotness > 0 && (
                   <div>
                     <span className="text-sm font-medium text-gray-500">
-                      Popularity
+                      Độ hot
                     </span>
                     <div className="flex items-center mt-1">
                       <div className="flex-1 bg-gray-200 rounded-full h-2 mr-3">
@@ -272,12 +272,10 @@ const MovieDetails = () => {
                   </div>
                 )}
               </div>
-
-              {/* Showtimes */}
               {movie.status === "now-showing" && showtimes.length > 0 && (
                 <div className="mt-8">
                   <h4 className="text-lg font-bold text-gray-900 mb-4">
-                    Available Showtimes
+                    Lịch chiếu có sẵn
                   </h4>
                   <div className="space-y-2">
                     {showtimes.slice(0, 3).map((showtime, index) => (
@@ -290,7 +288,7 @@ const MovieDetails = () => {
                         to={`/showtimes?movieId=${movie._id}`}
                         className="text-red-600 hover:text-red-700 text-sm font-medium"
                       >
-                        View all showtimes →
+                        Xem tất cả lịch chiếu →
                       </Link>
                     )}
                   </div>

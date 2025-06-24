@@ -25,7 +25,6 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  TrendingUp as TrendingUpIcon,
   Search as SearchIcon,
   Movie as MovieIcon,
 } from "@mui/icons-material";
@@ -46,7 +45,7 @@ const AdminMovies = () => {
     severity: "success",
   });
   const [filters, setFilters] = useState({
-    status: "",
+    status: "now-showing", // Default filter to hide ended movies
     genre: "",
     search: "",
   });
@@ -152,18 +151,6 @@ const AdminMovies = () => {
     }
   };
 
-  const handleUpdateHotness = async () => {
-    try {
-      setLoading(true);
-      await movieService.updateMovieHotness();
-      showAlert("Movie hotness updated successfully");
-      fetchMovies();
-    } catch (error) {
-      console.error("Error updating hotness:", error);
-      showAlert("Failed to update movie hotness", "error");
-    }
-  };
-
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -236,7 +223,7 @@ const AdminMovies = () => {
         Movie Management
       </Typography>
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card
             elevation={2}
             sx={{ display: "flex", alignItems: "center", p: 2 }}
@@ -250,14 +237,12 @@ const AdminMovies = () => {
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card
             elevation={2}
             sx={{ display: "flex", alignItems: "center", p: 2 }}
           >
-            <TrendingUpIcon
-              sx={{ fontSize: 40, color: "primary.main", mr: 2 }}
-            />
+            <MovieIcon sx={{ fontSize: 40, color: "primary.main", mr: 2 }} />
             <Box>
               <Typography color="text.secondary">Now Showing</Typography>
               <Typography variant="h5" fontWeight="bold">
@@ -266,19 +251,7 @@ const AdminMovies = () => {
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Button
-            fullWidth
-            variant="outlined"
-            startIcon={<TrendingUpIcon />}
-            onClick={handleUpdateHotness}
-            disabled={loading}
-            sx={{ height: "100%", minHeight: 80 }}
-          >
-            Update Hotness
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Button
             fullWidth
             variant="contained"
@@ -375,7 +348,12 @@ const AdminMovies = () => {
             </Typography>
             {movies.length > 0 ? (
               <>
-                <Grid container spacing={3} mb={4}>
+                <Grid
+                  container
+                  spacing={3}
+                  mb={4}
+                  justifyContent={movies.length === 1 ? "center" : "flex-start"}
+                >
                   {movies.map((movie) => (
                     <Grid item xs={12} sm={6} md={4} lg={3} key={movie._id}>
                       <Card
@@ -385,6 +363,7 @@ const AdminMovies = () => {
                           display: "flex",
                           flexDirection: "column",
                           maxWidth: 300,
+                          margin: "0 auto",
                         }}
                       >
                         <Box

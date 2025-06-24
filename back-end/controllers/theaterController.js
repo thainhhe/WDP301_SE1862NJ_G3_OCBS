@@ -1,75 +1,131 @@
-import Theater from '../models/theaterModel.js';
+import asyncHandler from "express-async-handler";
+import Theater from "../models/theaterModel.js";
+import Branch from "../models/branchModel.js";
+import Seat from "../models/seatModel.js";
+import SeatLayout from "../models/seatLayoutModel.js";
 
-// Create a new theater
-export const createTheater = async (req, res) => {
-    try {
-        const { name, capacity, seatLayout } = req.body;
-        const newTheater = new Theater({ name, capacity, seatLayout });
-        const savedTheater = await newTheater.save();
-        return res.status(201).json(savedTheater);
-    } catch (error) {
-        console.error('Error creating theater:', error);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
+// Create theater - POST /api/theaters - Private/Admin
+const createTheater = asyncHandler(async (req, res) => {
+  const { name, capacity, seatLayout, branchId } = req.body;
 
-// Get all theaters
-export const getAllTheaters = async (req, res) => {
-    try {
-        const theaters = await Theater.find().populate('seatLayout');
-        return res.status(200).json(theaters);
-    } catch (error) {
-        console.error('Error fetching theaters:', error);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
+  if (!name || !capacity || !branchId) {
+    res.status(400);
+    throw new Error("Name, capacity, and branch ID are required");
+  }
 
-// Get a single theater by ID
-export const getTheaterById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const theater = await Theater.findById(id).populate('seatLayout');
-        if (!theater) {
-            return res.status(404).json({ message: 'Theater not found' });
-        }
-        return res.status(200).json(theater);
-    } catch (error) {
-        console.error('Error fetching theater:', error);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
+  // Verify branch exists
+  const branch = await Branch.findById(branchId);
+  if (!branch) {
+    res.status(404);
+    throw new Error("Branch not found");
+  }
 
-// Update a theater by ID
-export const updateTheater = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, capacity, seatLayout } = req.body;
-        const updated = await Theater.findByIdAndUpdate(
-            id,
-            { name, capacity, seatLayout },
-            { new: true, runValidators: true }
-        );
-        if (!updated) {
-            return res.status(404).json({ message: 'Theater not found' });
-        }
-        return res.status(200).json(updated);
-    } catch (error) {
-        console.error('Error updating theater:', error);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
+  const theater = await Theater.create({
+    name,
+    capacity,
+    seatLayout: seatLayout || {
+      rows: Math.ceil(capacity / 10),
+      seatsPerRow: 10,
+      vipRows: [],
+      coupleSeats: [],
+    },
+  });
 
-// Delete a theater by ID
-export const deleteTheater = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deleted = await Theater.findByIdAndDelete(id);
-        if (!deleted) {
-            return res.status(404).json({ message: 'Theater not found' });
-        }
-        return res.status(200).json({ message: 'Theater deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting theater:', error);
-        return res.status(500).json({ message: 'Server error' });
+  // Add theater to branch
+  branch.theaters.push(theater._id);
+  await branch.save();
+
+  res.status(201).json(theater);
+});
+
+// Get theaters by branch - GET /api/theaters/branch/:branchId - Public
+const getTheatersByBranch = asyncHandler(async (req, res) => {
+  const { branchId } = req.params;
+
+  const branch = await Branch.findById(branchId).populate("theaters");
+  if (!branch) {
+    res.status(404);
+    throw new Error("Branch not found");
+  }
+
+  res.json(branch.theaters);
+});
+
+// Get theater by ID - GET /api/theaters/:id - Public
+const getTheaterById = asyncHandler(async (req, res) => {
+  const theater = await Theater.findById(req.params.id);
+
+  if (theater) {
+    // Get seat count
+    const seatCount = await Seat.countDocuments({
+      theater: theater._id,
+      isActive: true,
+    });
+
+    // Get seat layouts
+    const seatLayouts = await SeatLayout.find({
+      theater: theater._id,
+      isActive: true,
+    });
+
+    res.json({
+      ...theater.toObject(),
+      actualSeatCount: seatCount,
+      seatLayouts,
+    });
+  } else {
+    res.status(404);
+    throw new Error("Theater not found");
+  }
+});
+
+// Update theater - PUT /api/theaters/:id - Private/Admin
+const updateTheater = asyncHandler(async (req, res) => {
+  const theater = await Theater.findById(req.params.id);
+
+  if (theater) {
+    theater.name = req.body.name || theater.name;
+    theater.capacity = req.body.capacity || theater.capacity;
+    theater.seatLayout = req.body.seatLayout || theater.seatLayout;
+
+    const updatedTheater = await theater.save();
+    res.json(updatedTheater);
+  } else {
+    res.status(404);
+    throw new Error("Theater not found");
+  }
+});
+
+// Delete theater - DELETE /api/theaters/:id - Private/Admin
+const deleteTheater = asyncHandler(async (req, res) => {
+  const theater = await Theater.findById(req.params.id);
+
+  if (theater) {
+    // Check if theater has seats or showtimes
+    const seatCount = await Seat.countDocuments({ theater: theater._id });
+    if (seatCount > 0) {
+      res.status(400);
+      throw new Error("Cannot delete theater with existing seats");
     }
+
+    // Remove from branch
+    await Branch.updateMany(
+      { theaters: theater._id },
+      { $pull: { theaters: theater._id } }
+    );
+
+    await theater.deleteOne();
+    res.json({ message: "Theater removed" });
+  } else {
+    res.status(404);
+    throw new Error("Theater not found");
+  }
+});
+
+export {
+  createTheater,
+  getTheatersByBranch,
+  getTheaterById,
+  updateTheater,
+  deleteTheater,
 };

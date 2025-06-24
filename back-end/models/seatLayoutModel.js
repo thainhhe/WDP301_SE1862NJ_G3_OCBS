@@ -24,8 +24,8 @@ const seatLayoutSchema = mongoose.Schema(
       type: Number,
       required: true,
     },
-    rowLabels: [String], // e.g., ["A", "B", "C", ...]
-    vipRows: [String], // e.g., ["J", "K"]
+    rowLabels: [String],
+    vipRows: [String],
     coupleSeats: [
       {
         row: String,
@@ -33,7 +33,7 @@ const seatLayoutSchema = mongoose.Schema(
         endSeat: Number,
       },
     ],
-    aisleAfterColumns: [Number], // e.g., [4, 8] - aisles after seats 4 and 8
+    aisleAfterColumns: [Number],
     disabledSeats: [
       {
         row: String,
