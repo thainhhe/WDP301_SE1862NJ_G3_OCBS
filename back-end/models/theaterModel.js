@@ -4,16 +4,9 @@ const theaterSchema = new mongoose.Schema({
     name: { type: String, required: true },
     capacity: { type: Number, required: true },
     seatLayout: {
-        rows: { type: Number, required: true },
-        seatsPerRow: { type: Number, required: true },
-        vipRows: [Number],
-        coupleSeats: [
-            {
-                row: Number,
-                startSeat: Number,
-                endSeat: Number,
-            },
-        ],
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SeatLayout",
+        required: true,
     },
 }, {
     timestamps: true,
