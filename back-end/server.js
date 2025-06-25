@@ -1,5 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
+import { Server } from "socket.io";
+import { createServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -8,6 +10,7 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 import cleanupExpiredReservations from "./jobs/cleanupExpiredReservations.js";
+import { initializeSocketHandlers } from "./socket/socketHandlers.js";
 
 // Load env
 dotenv.config();
@@ -25,11 +28,20 @@ import seatStatusRoutes from "./routes/seatStatusRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
 //import debugRoutes from "./routes/debugRoutes.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 // Middleware
 app.use(
@@ -71,7 +83,14 @@ app.use("/api/seats", seatRoutes);
 app.use("/api/seat-status", seatStatusRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/theaters", theaterRoutes);
+app.use("/api/bookings", bookingRoutes);
+
 //app.use("/api/debug", debugRoutes);
+
+// Make io available globally
+global.io = io;
+// Initialize Socket.IO handlers
+initializeSocketHandlers(io);
 
 // Error Middleware
 app.use(notFound);

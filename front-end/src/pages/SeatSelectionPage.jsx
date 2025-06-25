@@ -10,6 +10,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import CustomerSeatSelection from "@/components/booking/CustomerSeatSelection";
 import { showtimeService } from "../services/showtimeService";
+import { bookingService } from "../services/bookingService";
+import socketService from "../services/socketService";
+import { seatService } from "../services/seatService";
+import { seatStatusService } from "../services/seatStatusService";
 
 const SeatSelectionPage = () => {
   const { showtimeId } = useParams();
@@ -39,6 +43,171 @@ const SeatSelectionPage = () => {
       setError("Failed to load showtime details. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // const handleBookSeats = async () => {
+  //   try {
+  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  //     const userId = userInfo?._id || localStorage.getItem("userId");
+  //     if (!userId) {
+  //       setError("Vui lòng đăng nhập để đặt vé.");
+  //       setTimeout(() => setError(null), 5000);
+  //       return;
+  //     }
+
+  //     if (selectedSeats.length === 0) {
+  //       setError("Vui lòng chọn ít nhất một ghế trước khi đặt vé.");
+  //       setTimeout(() => setError(null), 5000);
+  //       return;
+  //     }
+
+  //     // Kiểm tra trạng thái ghế
+  //     const latestStatus = await seatService.getSeatAvailability(showtimeId);
+  //     const invalidSeats = selectedSeats.filter(
+  //       (seat) =>
+  //         !latestStatus.some(
+  //           (ls) =>
+  //             ls._id === seat._id &&
+  //             ["available", "reserved"].includes(ls.availability?.status)
+  //         )
+  //     );
+  //     if (invalidSeats.length > 0) {
+  //       setError("Một số ghế không còn trống hoặc không hợp lệ.");
+  //       setTimeout(() => setError(null), 5000);
+  //       return;
+  //     }
+
+  //     // Đặt ghế thành trạng thái reserved
+  //     await seatService.reserveSeats(
+  //       showtimeId,
+  //       selectedSeats.map((s) => s._id),
+  //       userId
+  //     );
+
+  //     // Tạo booking
+  //     const bookingResponse = await bookingService.createBooking({
+  //       showtimeId,
+  //       seatIds: selectedSeats.map((s) => s._id), // Đổi từ seats sang seatIds
+  //       totalPrice,
+  //       combos: [], // Thêm mặc định
+  //       voucherId: null, // Thêm mặc định
+  //       paymentMethod: null, // Thêm mặc định
+  //     });
+  //     const bookingId = bookingResponse.booking._id; // Cập nhật lấy _id từ response đúng cấu trúc
+
+  //     // Đặt ghế
+  //     await seatService.bookSeats(
+  //       showtimeId,
+  //       selectedSeats.map((s) => s._id),
+  //       bookingId
+  //     );
+
+  //     // Gửi sự kiện initiate-payment
+  //     socketService.initiatePayment(
+  //       showtimeId,
+  //       selectedSeats.map((seat) => seat._id)
+  //     );
+
+  //     // Chuyển đến trang booking
+  //     navigate(`/booking/${bookingId}`);
+  //   } catch (error) {
+  //     console.error("Error booking seats:", {
+  //       error: error.message,
+  //       showtimeId,
+  //       seatIds: selectedSeats.map((s) => s._id),
+  //     });
+  //     setError(
+  //       error.message || "Không thể bắt đầu quá trình đặt vé. Vui lòng thử lại."
+  //     );
+  //     setTimeout(() => setError(null), 5000);
+  //   }
+  // };
+
+  const handleBookSeats = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const userId = userInfo?._id || localStorage.getItem("userId");
+      if (!userId) {
+        setError("Please log in to book tickets.");
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      if (selectedSeats.length === 0) {
+        setError("Please select at least one seat before booking.");
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      // Đặt trước ghế
+      await seatService.reserveSeats(
+        showtimeId,
+        selectedSeats.map((s) => s._id),
+        userId
+      );
+
+      // Kiểm tra trạng thái ghế sau khi đặt trước
+      const latestStatus = await seatStatusService.getSeatStatusByShowtime(
+        showtimeId
+      );
+      console.log("Latest seat statuses:", latestStatus.seatStatuses);
+      const invalidSeats = selectedSeats.filter(
+        (seat) =>
+          !latestStatus.seatStatuses.some(
+            (ls) =>
+              ls.seat._id.toString() === seat._id &&
+              ls.status === "reserved" &&
+              ls.reservedBy.toString() === userId
+          )
+      );
+      if (invalidSeats.length > 0) {
+        setError("Some seats are no longer reserved for you.");
+        setTimeout(() => setError(null), 5000);
+        // Giải phóng các ghế đã đặt trước
+        await seatService.releaseReservation(
+          showtimeId,
+          selectedSeats.map((s) => s._id)
+        );
+        return;
+      }
+
+      // Tiếp tục tạo booking
+      const bookingResponse = await bookingService.createBooking({
+        showtimeId,
+        seatIds: selectedSeats.map((s) => s._id),
+        totalPrice,
+        combos: [],
+        voucherId: null,
+        paymentMethod: null,
+      });
+      const bookingId = bookingResponse.booking._id;
+
+      // Đặt ghế
+      await seatService.bookSeats(
+        showtimeId,
+        selectedSeats.map((s) => s._id),
+        bookingId
+      );
+
+      // Gửi sự kiện initiate-payment
+      socketService.initiatePayment(
+        showtimeId,
+        selectedSeats.map((seat) => seat._id)
+      );
+
+      // Chuyển đến trang booking
+      navigate(`/booking/${bookingId}`);
+    } catch (error) {
+      console.error("Error booking seats:", {
+        error: error.message,
+        showtimeId,
+        seatIds: selectedSeats.map((s) => s._id),
+      });
+      setError(
+        error.message || "Unable to start booking process. Please try again."
+      );
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -289,7 +458,7 @@ const SeatSelectionPage = () => {
           maxSeats={8}
         />
 
-        {/* Selection Summary */}
+        {/* Book Seats Button */}
         {selectedSeats.length > 0 && (
           <Card className="mt-6">
             <CardContent className="p-6">
@@ -300,21 +469,20 @@ const SeatSelectionPage = () => {
                 <p className="text-2xl font-bold text-green-600 mb-4">
                   {formatPrice(totalPrice)}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mb-4">
                   Seats:{" "}
                   {selectedSeats
                     .map((seat) => `${seat.row}${seat.number}`)
                     .join(", ")}
                 </p>
 
-                {/* Demo message - since we're not implementing actual booking */}
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    🎬 <strong>Demo Complete!</strong> You have successfully
-                    selected your seats. In a real application, this would
-                    proceed to payment and booking confirmation.
-                  </p>
-                </div>
+                <Button
+                  onClick={handleBookSeats}
+                  className="bg-red-600 hover:bg-red-700"
+                  size="lg"
+                >
+                  Book Seats
+                </Button>
               </div>
             </CardContent>
           </Card>

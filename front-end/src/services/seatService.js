@@ -86,12 +86,17 @@ export const seatService = {
   },
 
   // Seat Status Management
-  async reserveSeats(showtimeId, seatIds, duration = 10) {
+  async reserveSeats(showtimeId, seatIds, userId) {
+    console.log("Reserving seats with payload:", {
+      showtimeId,
+      seatIds,
+      userId,
+    });
     try {
       const response = await api.post("/seat-status/reserve", {
         showtimeId,
         seatIds,
-        reservationMinutes: duration,
+        userId,
       });
       return response.data;
     } catch (error) {
@@ -118,13 +123,27 @@ export const seatService = {
 
   async releaseReservation(showtimeId, seatIds) {
     try {
+      // Kiểm tra dữ liệu đầu vào
+      if (
+        !showtimeId ||
+        !seatIds ||
+        !Array.isArray(seatIds) ||
+        seatIds.length === 0
+      ) {
+        throw new Error("Invalid showtimeId or seatIds");
+      }
+
       const response = await api.post("/seat-status/release", {
         showtimeId,
         seatIds,
       });
       return response.data;
     } catch (error) {
-      console.error("Error releasing reservation:", error);
+      console.error("Error releasing reservation:", {
+        error: error.message,
+        showtimeId,
+        seatIds,
+      });
       throw new Error(
         error.response?.data?.message || "Failed to release reservation"
       );

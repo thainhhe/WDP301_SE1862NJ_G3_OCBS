@@ -44,46 +44,74 @@ export const areSeatsAdjacent = (seat1, seat2) => {
 };
 
 // Validate seat selection rules
-export const validateSeatSelection = async (seatIds, showtimeId) => {
+export const validateSeatSelection = async (seatIds, showtimeId, userId) => {
   const seats = await Seat.find({ _id: { $in: seatIds } }).sort({
     row: 1,
     number: 1,
   });
-
   if (seats.length !== seatIds.length) {
     throw new Error("Some seats not found");
   }
 
-  // Check if seats are available
-  const seatStatuses = await SeatStatus.find({
-    showtime: showtimeId,
-    seat: { $in: seatIds },
-  });
-
-  const unavailableSeats = seatStatuses.filter(
-    (status) => status.status !== "available"
-  );
-  if (unavailableSeats.length > 0) {
-    throw new Error("Some seats are not available");
+  // Lock seats atomically
+  for (const seatId of seatIds) {
+    const updated = await SeatStatus.findOneAndUpdate(
+      {
+        showtime: showtimeId,
+        seat: seatId,
+        status: "available",
+      },
+      {
+        $set: {
+          status: "selecting",
+          reservedBy: userId,
+          reservedAt: new Date(),
+          reservationExpires: new Date(Date.now() + 30 * 1000),
+        },
+      },
+      { new: true }
+    );
+    if (!updated) {
+      // Roll back any locked seats
+      await SeatStatus.updateMany(
+        { showtime: showtimeId, seat: { $in: seatIds }, reservedBy: userId },
+        {
+          $set: {
+            status: "available",
+            reservedBy: null,
+            reservedAt: null,
+            reservationExpires: null,
+          },
+        }
+      );
+      throw new Error(`Seat ${seatId} is not available`);
+    }
   }
 
-  // Group seats by row
+  // Check gap rule
   const seatsByRow = {};
   seats.forEach((seat) => {
-    if (!seatsByRow[seat.row]) {
-      seatsByRow[seat.row] = [];
-    }
+    if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
     seatsByRow[seat.row].push(seat);
   });
 
-  // Check for gaps (không để ghế trống giữa các ghế đã chọn)
   for (const row in seatsByRow) {
     const rowSeats = seatsByRow[row].sort((a, b) => a.number - b.number);
-
     for (let i = 1; i < rowSeats.length; i++) {
       const gap = rowSeats[i].number - rowSeats[i - 1].number;
       if (gap === 2) {
-        // Có đúng 1 ghế trống giữa 2 ghế đã chọn
+        // Roll back locked seats
+        await SeatStatus.updateMany(
+          { showtime: showtimeId, seat: { $in: seatIds }, reservedBy: userId },
+          {
+            $set: {
+              status: "available",
+              reservedBy: null,
+              reservedAt: null,
+              reservationExpires: null,
+            },
+          }
+        );
         throw new Error(
           `Cannot leave single seat gap between seats ${rowSeats[i - 1].row}${
             rowSeats[i - 1].number
