@@ -151,24 +151,44 @@ const SeatSelectionPage = () => {
       const latestStatus = await seatStatusService.getSeatStatusByShowtime(
         showtimeId
       );
+      console.log(
+        "Selected:",
+        selectedSeats.map((s) => s._id)
+      );
       console.log("Latest seat statuses:", latestStatus.seatStatuses);
       const invalidSeats = selectedSeats.filter(
         (seat) =>
-          !latestStatus.seatStatuses.some(
-            (ls) =>
+          !latestStatus.seatStatuses.some((ls) => {
+            console.log(
+              "Comparing seat._id:",
+              seat._id,
+              "with ls.seat._id:",
+              ls.seat._id.toString()
+            );
+            console.log(
+              "Status:",
+              ls.status,
+              "ReservedBy:",
+              ls.reservedBy?.toString(),
+              "UserId:",
+              userId
+            );
+            return (
               ls.seat._id.toString() === seat._id &&
               ls.status === "reserved" &&
               ls.reservedBy.toString() === userId
-          )
+            );
+          })
       );
       if (invalidSeats.length > 0) {
+        console.error("invalidSeats là:", invalidSeats);
         setError("Some seats are no longer reserved for you.");
         setTimeout(() => setError(null), 5000);
         // Giải phóng các ghế đã đặt trước
-        await seatService.releaseReservation(
-          showtimeId,
-          selectedSeats.map((s) => s._id)
-        );
+        // await seatService.releaseReservation(
+        //   showtimeId,
+        //   selectedSeats.map((s) => s._id)
+        // );
         return;
       }
 

@@ -94,6 +94,12 @@ const reserveSeats = asyncHandler(async (req, res) => {
       },
     }
   );
+  console.log("Updated seats:", updateResult.modifiedCount);
+  const updatedSeats = await SeatStatus.find({
+    showtime: showtimeId,
+    seat: { $in: seatIds },
+  });
+  console.log("Seat statuses after reserve:", updatedSeats);
 
   if (updateResult.modifiedCount !== seatIds.length) {
     console.error("Failed to reserve seats:", {
