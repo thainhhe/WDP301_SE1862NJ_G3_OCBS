@@ -49,7 +49,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "booking/:showtimeId",
+        path: "booking/:bookingId",
         element: (
           <ProtectedRoute>
             <BookingPage />

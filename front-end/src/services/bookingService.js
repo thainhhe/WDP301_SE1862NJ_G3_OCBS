@@ -9,7 +9,7 @@ export const bookingService = {
     } catch (error) {
       console.error("Error creating booking:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to create booking"
+          error.response?.data?.message || "Failed to create booking"
       );
     }
   },
@@ -44,23 +44,23 @@ export const bookingService = {
     } catch (error) {
       console.error("Error cancelling booking:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to cancel booking"
+          error.response?.data?.message || "Failed to cancel booking"
       );
     }
   },
 
   // Confirm payment
-  async confirmPayment(bookingId, paymentData) {
+  async updatePaymentStatus(bookingId, paymentData) {
     try {
       const response = await api.put(
-        `/bookings/${bookingId}/confirm-payment`,
-        paymentData
+          `/bookings/${bookingId}/payment`,
+          paymentData
       );
       return response.data;
     } catch (error) {
       console.error("Error confirming payment:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to confirm payment"
+          error.response?.data?.message || "Failed to confirm payment"
       );
     }
   },
@@ -101,7 +101,7 @@ export const paymentService = {
     } catch (error) {
       console.error("Error cancelling payment:", error);
       throw new Error(
-        error.response?.data?.message || "Failed to cancel payment"
+          error.response?.data?.message || "Failed to cancel payment"
       );
     }
   },
