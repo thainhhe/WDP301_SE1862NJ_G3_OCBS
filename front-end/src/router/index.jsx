@@ -29,7 +29,8 @@ import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
 import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
-
+import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
+import AdminCombos from "../pages/admin/AdminCombos.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -109,6 +110,8 @@ const router = createBrowserRouter([
       { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
       { path: "seat-layouts", element: <SeatLayoutManagement /> },
+      { path: "vouchers", element: <AdminVouchers /> },
+      { path: "combos", element: <AdminCombos /> },
     ],
   },
 ]);

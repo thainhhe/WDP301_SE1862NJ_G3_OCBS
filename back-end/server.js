@@ -29,6 +29,8 @@ import branchRoutes from "./routes/branchRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import voucherRoutes from "./routes/voucherRoutes.js";
+import comboRoutes from './routes/comboRoutes.js';
 //import debugRoutes from "./routes/debugRoutes.js";
 
 const app = express();
@@ -84,6 +86,8 @@ app.use("/api/seat-status", seatStatusRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/theaters", theaterRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/vouchers", voucherRoutes);
+app.use('/api/combos', comboRoutes);
 
 //app.use("/api/debug", debugRoutes);
 

@@ -5,6 +5,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import FastfoodIcon from '@mui/icons-material/Fastfood';
 
 const navConfig = [
   {
@@ -40,6 +42,18 @@ const navConfig = [
     text: "Seat Layout Management",
     icon: <EventSeatIcon />,
     path: "/admin/seat-layouts",
+  },
+  {
+    type: "item",
+    text: "Voucher Management",
+    icon: <ConfirmationNumberIcon />,
+    path: "/admin/vouchers",
+  },
+  {
+    type: "item",
+    text: "Combo Management",
+    icon: <FastfoodIcon />,
+    path: "/admin/combos",
   },
   {
     type: "parent",

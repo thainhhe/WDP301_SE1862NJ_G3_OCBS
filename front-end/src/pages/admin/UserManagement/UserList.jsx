@@ -116,7 +116,6 @@ const UserListPage = () => {
                         offcanvasMode === 'edit' ? 'Edit User Information' :
                             'User Details'
                 }
-                // SỬA Ở ĐÂY: Thay đổi width thành 50%
                 width={'50vw'}
             >
                 {offcanvasMode === 'detail' && (
