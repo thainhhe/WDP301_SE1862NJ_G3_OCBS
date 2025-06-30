@@ -15,6 +15,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { seatService } from "../../services/seatService";
+import socketService from "../../services/socketService";
 
 const CustomerSeatSelection = ({
   showtimeId,
@@ -27,6 +28,73 @@ const CustomerSeatSelection = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Khởi tạo WebSocket
+  useEffect(() => {
+    const token = localStorage.getItem("token"); // Giả định token được lưu trong localStorage
+    if (token && showtimeId) {
+      socketService.connect(token);
+      socketService.joinShowtime(showtimeId);
+
+      // Lắng nghe các sự kiện từ server
+      socketService.on("initial-seat-status", (data) => {
+        setSeats(data.seats || []);
+      });
+
+      socketService.on("seats-being-selected", ({ seatIds, userId }) => {
+        setSeats((prevSeats) =>
+          prevSeats.map((seat) =>
+            seatIds.includes(seat._id)
+              ? {
+                  ...seat,
+                  availability: { ...seat.availability, status: "reserved" },
+                }
+              : seat
+          )
+        );
+      });
+
+      socketService.on("seats-reserved-for-payment", ({ seatIds }) => {
+        setSeats((prevSeats) =>
+          prevSeats.map((seat) =>
+            seatIds.includes(seat._id)
+              ? {
+                  ...seat,
+                  availability: { ...seat.availability, status: "reserved" },
+                }
+              : seat
+          )
+        );
+      });
+
+      socketService.on("seats-released", ({ seatIds }) => {
+        setSeats((prevSeats) =>
+          prevSeats.map((seat) =>
+            seatIds.includes(seat._id)
+              ? {
+                  ...seat,
+                  availability: { ...seat.availability, status: "available" },
+                }
+              : seat
+          )
+        );
+        // Xóa các ghế đã giải phóng khỏi selectedSeats
+        setSelectedSeats((prev) =>
+          prev.filter((s) => !seatIds.includes(s._id))
+        );
+      });
+
+      socketService.on("seat-selection-failed", ({ message }) => {
+        setError(message);
+        setTimeout(() => setError(null), 5000);
+      });
+    }
+
+    return () => {
+      socketService.leaveShowtime(showtimeId);
+      socketService.disconnect();
+    };
+  }, [showtimeId]);
+
   useEffect(() => {
     if (showtimeId) {
       fetchSeatAvailability();
@@ -34,12 +102,9 @@ const CustomerSeatSelection = ({
   }, [showtimeId]);
 
   useEffect(() => {
-    // Notify parent of selection changes
     if (onSeatSelectionChange) {
       onSeatSelectionChange(selectedSeats);
     }
-
-    // Calculate and notify price changes
     if (onPriceChange) {
       const totalPrice = calculateTotalPrice();
       onPriceChange(totalPrice);
@@ -50,67 +115,64 @@ const CustomerSeatSelection = ({
     try {
       setLoading(true);
       setError(null);
-
       const data = await seatService.getSeatAvailability(showtimeId);
       setSeats(data || []);
     } catch (error) {
       console.error("Error fetching seat availability:", error);
-      setError("Unable to load seat information. Please try again.");
+      setError("Không thể tải thông tin ghế. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-  // REQ-3.5: Ngăn đặt các ghế cách nhau đúng một ghế
   const validateGapRule = useCallback(
     (newSelection) => {
       if (newSelection.length <= 1) return { valid: true };
 
-      // Group seats by row
       const seatsByRow = {};
       newSelection.forEach((seat) => {
-        if (!seatsByRow[seat.row]) {
-          seatsByRow[seat.row] = [];
-        }
+        if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
         seatsByRow[seat.row].push(seat);
       });
 
-      // Check gap rule for each row
       for (const row in seatsByRow) {
         const rowSeats = seatsByRow[row].sort((a, b) => a.number - b.number);
-
         for (let i = 0; i < rowSeats.length - 1; i++) {
           const current = rowSeats[i];
           const next = rowSeats[i + 1];
           const gap = next.number - current.number;
 
           if (gap === 2) {
-            // Check if the seat in between is available
             const middleSeatNumber = current.number + 1;
             const middleSeat = seats.find(
               (seat) =>
                 seat.row === current.row && seat.number === middleSeatNumber
             );
-
             if (middleSeat && middleSeat.availability?.status === "available") {
               return {
                 valid: false,
-                message: `Cannot leave single empty seat between ${current.row}${current.number} and ${next.row}${next.number}. Please select the seat in between or choose different seats.`,
+                message: `Không thể để trống một ghế giữa ${current.row}${current.number} và ${next.row}${next.number}. Vui lòng chọn ghế ở giữa hoặc chọn ghế khác.`,
               };
             }
           }
         }
       }
-
       return { valid: true };
     },
     [seats]
   );
 
   const handleSeatClick = useCallback(
-    (seat) => {
-      // REQ-3.4: Chỉ cho phép chọn ghế trống
-      if (seat.availability?.status !== "available") {
+    async (seat) => {
+      // Lấy trạng thái ghế mới nhất từ server
+      const latestStatus = await seatService.getSeatAvailability(showtimeId);
+      const currentSeat = latestStatus.find((s) => s._id === seat._id);
+      if (
+        currentSeat.availability?.status !== "available" &&
+        !selectedSeats.some((s) => s._id === seat._id)
+      ) {
+        setError(`Ghế ${seat.row}${seat.number} không còn trống`);
+        setTimeout(() => setError(null), 5000);
         return;
       }
 
@@ -118,20 +180,20 @@ const CustomerSeatSelection = ({
       let newSelection;
 
       if (isSelected) {
-        // Deselect seat
         newSelection = selectedSeats.filter((s) => s._id !== seat._id);
       } else {
-        // Select seat (check max limit)
         if (selectedSeats.length >= maxSeats) {
-          setError(`Maximum ${maxSeats} seats can be selected`);
+          setError(`Chỉ được chọn tối đa ${maxSeats} ghế`);
           setTimeout(() => setError(null), 3000);
           return;
         }
         newSelection = [...selectedSeats, seat];
       }
 
-      // REQ-3.5: Validate gap rule
-      const validation = validateGapRule(newSelection);
+      const validation = seatService.validateSeatSelection(
+        newSelection,
+        latestStatus
+      );
       if (!validation.valid) {
         setError(validation.message);
         setTimeout(() => setError(null), 5000);
@@ -140,8 +202,61 @@ const CustomerSeatSelection = ({
 
       setError(null);
       setSelectedSeats(newSelection);
+
+      try {
+        if (newSelection.length > 0) {
+          // Gửi yêu cầu chọn ghế qua WebSocket
+          socketService.selectSeats(
+            showtimeId,
+            newSelection.map((s) => s._id)
+          );
+
+          // Chờ xác nhận từ WebSocket
+          await new Promise((resolve, reject) => {
+            socketService.on("seat-selection-success", () => resolve());
+            socketService.on("seat-selection-failed", ({ message }) => {
+              setError(message);
+              setTimeout(() => setError(null), 5000);
+              reject(new Error(message));
+            });
+          });
+
+          // Đặt giữ ghế
+          await seatService.reserveSeats(
+            showtimeId,
+            newSelection.map((s) => s._id),
+            10
+          );
+        } else if (selectedSeats.length > 0) {
+          // Lấy trạng thái mới nhất trước khi giải phóng
+          const latestStatus = await seatService.getSeatAvailability(
+            showtimeId
+          );
+          const seatsToRelease = selectedSeats.filter((s) =>
+            latestStatus.some(
+              (ls) => ls._id === s._id && ls.availability?.status === "reserved"
+            )
+          );
+          const seatIdsToRelease = seatsToRelease.map((s) => s._id);
+          if (seatIdsToRelease.length > 0) {
+            await seatService.releaseReservation(showtimeId, seatIdsToRelease);
+            socketService.releaseSeats(showtimeId, seatIdsToRelease);
+          }
+        }
+
+        // Cập nhật trạng thái ghế trên client
+        setSeats(latestStatus);
+      } catch (error) {
+        setError(error.message || "Không thể xử lý ghế. Vui lòng thử lại.");
+        console.error("Error in handleSeatClick:", {
+          error: error.message,
+          showtimeId,
+          seatIds: selectedSeats.map((s) => s._id),
+        });
+        setTimeout(() => setError(null), 5000);
+      }
     },
-    [selectedSeats, seats, maxSeats, validateGapRule]
+    [selectedSeats, seats, maxSeats, showtimeId]
   );
 
   const getSeatIcon = (seat) => {
@@ -155,14 +270,11 @@ const CustomerSeatSelection = ({
     }
   };
 
-  // REQ-3.4: Hiển thị trạng thái ghế
   const getSeatColor = (seat) => {
     const isSelected = selectedSeats.some((s) => s._id === seat._id);
-
     if (isSelected) {
       return "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-400 ring-offset-1";
     }
-
     switch (seat.availability?.status) {
       case "available":
         switch (seat.type) {
@@ -215,17 +327,12 @@ const CustomerSeatSelection = ({
   const groupSeatsByRow = () => {
     const grouped = {};
     seats.forEach((seat) => {
-      if (!grouped[seat.row]) {
-        grouped[seat.row] = [];
-      }
+      if (!grouped[seat.row]) grouped[seat.row] = [];
       grouped[seat.row].push(seat);
     });
-
-    // Sort seats within each row
     Object.keys(grouped).forEach((row) => {
       grouped[row].sort((a, b) => a.number - b.number);
     });
-
     return grouped;
   };
 
@@ -234,7 +341,7 @@ const CustomerSeatSelection = ({
       <Card>
         <CardContent className="p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading seat map...</p>
+          <p className="text-gray-600">Đang tải sơ đồ ghế...</p>
         </CardContent>
       </Card>
     );
@@ -246,11 +353,11 @@ const CustomerSeatSelection = ({
         <CardContent className="p-8 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Unable to load seats
+            Không thể tải ghế
           </h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <Button onClick={fetchSeatAvailability} variant="outline">
-            Try Again
+            Thử lại
           </Button>
         </CardContent>
       </Card>
@@ -262,18 +369,15 @@ const CustomerSeatSelection = ({
 
   return (
     <div className="space-y-6">
-      {/* Error Alert */}
       {error && (
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800">{error}</AlertDescription>
         </Alert>
       )}
-
-      {/* Legend */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Seat Legend</CardTitle>
+          <CardTitle className="text-lg">Chú thích ghế</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
@@ -281,25 +385,25 @@ const CustomerSeatSelection = ({
               <div className="w-6 h-6 bg-green-100 border border-green-300 rounded flex items-center justify-center">
                 <Users className="w-3 h-3 text-green-800" />
               </div>
-              <span>Available</span>
+              <span>Còn trống</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-blue-600 border border-blue-600 rounded flex items-center justify-center">
                 <Users className="w-3 h-3 text-white" />
               </div>
-              <span>Selected</span>
+              <span>Đã chọn</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-red-100 border border-red-300 rounded flex items-center justify-center">
                 <X className="w-3 h-3 text-red-800" />
               </div>
-              <span>Booked</span>
+              <span>Đã đặt</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-orange-100 border border-orange-300 rounded flex items-center justify-center">
                 <Users className="w-3 h-3 text-orange-800" />
               </div>
-              <span>Reserved</span>
+              <span>Đang giữ</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-yellow-100 border border-yellow-300 rounded flex items-center justify-center">
@@ -316,13 +420,11 @@ const CustomerSeatSelection = ({
           </div>
         </CardContent>
       </Card>
-
-      {/* Seat Map */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-center">
             <Monitor className="w-5 h-5 mr-2" />
-            SCREEN
+            MÀN HÌNH
           </CardTitle>
           <div className="w-full h-2 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 rounded-full"></div>
         </CardHeader>
@@ -333,12 +435,9 @@ const CustomerSeatSelection = ({
                 key={row}
                 className="flex items-center justify-center space-x-2"
               >
-                {/* Row Label */}
                 <div className="w-8 text-center font-medium text-gray-700">
                   {row}
                 </div>
-
-                {/* Seats */}
                 <div className="flex space-x-1">
                   {groupedSeats[row].map((seat) => {
                     const isSelected = selectedSeats.some(
@@ -346,22 +445,17 @@ const CustomerSeatSelection = ({
                     );
                     const isClickable =
                       seat.availability?.status === "available";
-
                     return (
                       <button
                         key={seat._id}
                         onClick={() => handleSeatClick(seat)}
                         disabled={!isClickable}
                         className={`
-                                                    w-8 h-8 rounded border-2 flex items-center justify-center
-                                                    transition-all duration-200 text-xs font-medium
-                                                    ${getSeatColor(seat)}
-                                                    ${
-                                                      isClickable
-                                                        ? "transform hover:scale-110"
-                                                        : ""
-                                                    }
-                                                `}
+                          w-8 h-8 rounded border-2 flex items-center justify-center
+                          transition-all duration-200 text-xs font-medium
+                          ${getSeatColor(seat)}
+                          ${isClickable ? "transform hover:scale-110" : ""}
+                        `}
                         title={`${seat.row}${seat.number} - ${
                           seat.type
                         } - ${getSeatStatusText(
@@ -378,8 +472,6 @@ const CustomerSeatSelection = ({
                     );
                   })}
                 </div>
-
-                {/* Row Label (Right) */}
                 <div className="w-8 text-center font-medium text-gray-700">
                   {row}
                 </div>
@@ -388,14 +480,12 @@ const CustomerSeatSelection = ({
           </div>
         </CardContent>
       </Card>
-
-      {/* Selection Summary */}
       {selectedSeats.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
               <DollarSign className="w-5 h-5 mr-2" />
-              Selected Seats ({selectedSeats.length})
+              Ghế đã chọn ({selectedSeats.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -424,37 +514,29 @@ const CustomerSeatSelection = ({
                   </Badge>
                 ))}
               </div>
-
               <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-lg font-medium">Total Price:</span>
+                <span className="text-lg font-medium">Tổng giá:</span>
                 <span className="text-2xl font-bold text-green-600">
                   {formatPrice(calculateTotalPrice())}
                 </span>
               </div>
-
               <div className="text-sm text-gray-600">
-                <p>• Maximum {maxSeats} seats can be selected</p>
-                <p>• Cannot leave single empty seats between selected seats</p>
-                <p>• VIP and Couple seats have different pricing</p>
+                <p>• Tối đa được chọn {maxSeats} ghế</p>
+                <p>• Không được để trống một ghế giữa các ghế đã chọn</p>
+                <p>• Ghế VIP và Couple có giá cao hơn</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Instructions */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
-          <h4 className="font-medium text-blue-900 mb-2">
-            Seat Selection Rules:
-          </h4>
+          <h4 className="font-medium text-blue-900 mb-2">Quy tắc chọn ghế:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Click on available seats to select them</li>
-            <li>
-              • You cannot leave single empty seats between your selections
-            </li>
-            <li>• VIP seats (👑) and Couple seats (💕) have premium pricing</li>
-            <li>• Maximum {maxSeats} seats can be selected per booking</li>
+            <li>• Nhấn vào ghế trống để chọn</li>
+            <li>• Không được để trống một ghế giữa các ghế đã chọn</li>
+            <li>• Ghế VIP (👑) và Couple (💕) có giá cao hơn</li>
+            <li>• Tối đa được chọn {maxSeats} ghế mỗi lần đặt</li>
           </ul>
         </CardContent>
       </Card>

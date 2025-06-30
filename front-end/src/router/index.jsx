@@ -14,6 +14,7 @@ import ShowtimesPage from "@pages/ShowtimesPage";
 import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
 import SeatSelectionPage from "@pages/SeatSelectionPage";
+import BookingPage from "@pages/BookingPage";
 
 // Auth Pages
 import LoginPage from "@pages/auth/LoginPage";
@@ -44,6 +45,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SeatSelectionPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "booking/:showtimeId",
+        element: (
+          <ProtectedRoute>
+            <BookingPage />
           </ProtectedRoute>
         ),
       },
