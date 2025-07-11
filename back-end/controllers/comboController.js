@@ -1,12 +1,24 @@
 import asyncHandler from 'express-async-handler';
 import Combo from '../models/comboModel.js';
 
-// @desc    Fetch all combos (for customers)
+// @desc    Fetch all combos (for customers) with filter & search
 // @route   GET /api/combos
 // @access  Public
 const getCombos = asyncHandler(async (req, res) => {
-    // Customers only see active combos
-    const combos = await Combo.find({ isActive: true });
+    const { category, search } = req.query;
+    let filter = { isActive: true };
+
+    if (category) {
+        filter.category = category;
+    }
+    if (search) {
+        filter.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } }
+        ];
+    }
+
+    const combos = await Combo.find(filter);
     res.json(combos);
 });
 

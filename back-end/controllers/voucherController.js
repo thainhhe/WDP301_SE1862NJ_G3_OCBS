@@ -116,6 +116,19 @@ const deleteVoucher = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Get voucher by code
+// @route   GET /api/vouchers/code/:code
+// @access  Public
+const getVoucherByCode = asyncHandler(async (req, res) => {
+    const voucher = await Voucher.findOne({ code: req.params.code });
+    if (voucher) {
+        res.json(voucher);
+    } else {
+        res.status(404);
+        throw new Error("Voucher not found");
+    }
+});
+
 
 export {
     createVoucher,
@@ -123,4 +136,5 @@ export {
     getVoucherById,
     updateVoucher,
     deleteVoucher,
+    getVoucherByCode,
 };

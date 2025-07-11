@@ -5,6 +5,7 @@ import {
     getVoucherById,
     updateVoucher,
     deleteVoucher,
+    getVoucherByCode,
 } from "../controllers/voucherController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
@@ -18,5 +19,7 @@ router.route("/:id")
     .get(protect, admin, getVoucherById)
     .put(protect, admin, updateVoucher)
     .delete(protect, admin, deleteVoucher);
+
+router.get("/code/:code", getVoucherByCode);
 
 export default router;

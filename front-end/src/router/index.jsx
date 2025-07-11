@@ -15,6 +15,7 @@ import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
 import SeatSelectionPage from "@pages/SeatSelectionPage";
 import BookingPage from "@pages/BookingPage";
+import BookingReviewPage from "../pages/BookingReviewPage";
 
 // Auth Pages
 import LoginPage from "@pages/auth/LoginPage";
@@ -56,6 +57,10 @@ const router = createBrowserRouter([
             <BookingPage />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "booking-review",
+        element: <BookingReviewPage />,
       },
       {
         path: "profile",

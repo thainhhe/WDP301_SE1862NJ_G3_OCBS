@@ -24,4 +24,9 @@ export const voucherService = {
     async deleteVoucher(id) {
         await api.delete(`/vouchers/${id}`);
     },
+
+    getVoucherByCode: async (code) => {
+        const res = await api.get(`/vouchers/code/${code}`);
+        return res.data;
+    },
 };

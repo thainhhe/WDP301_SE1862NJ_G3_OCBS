@@ -4,13 +4,14 @@ import SeatStatus from "../models/seatStatusModel.js";
 import Showtime from "../models/showtimeModel.js";
 import { broadcastSeatUpdate } from "../socket/socketHandlers.js";
 import mongoose from "mongoose";
+import Combo from "../models/comboModel.js";
+import Voucher from "../models/voucherModel.js";
 
 // Create a PENDING booking - POST /api/bookings - Private
 const createBooking = asyncHandler(async (req, res) => {
   const {
     showtimeId,
     seatIds,
-    totalPrice, // Lấy tổng giá từ front-end
     combos = [],
     voucherId,
   } = req.body;
@@ -36,7 +37,73 @@ const createBooking = asyncHandler(async (req, res) => {
       throw new Error("Some selected seats are no longer reserved. Please try again.");
     }
 
-    // Create the booking document with pending status
+    // 1. Tính tổng giá vé
+    const seatTotal = seatStatuses.reduce((sum, status) => sum + (status.price || 0), 0);
+
+    // 2. Tính tổng giá combo
+    let comboTotal = 0;
+    let comboDetails = [];
+    if (combos.length > 0) {
+      const comboIds = combos.map(c => c.combo);
+      const comboDocs = await Combo.find({ _id: { $in: comboIds }, isActive: true });
+      for (const c of combos) {
+        const comboDoc = comboDocs.find(cd => cd._id.toString() === c.combo);
+        if (comboDoc) {
+          const quantity = c.quantity || 1;
+          const price = comboDoc.price * quantity;
+          comboTotal += price;
+          comboDetails.push({ combo: comboDoc._id, quantity, price: comboDoc.price });
+        }
+      }
+    }
+
+    // 3. Kiểm tra và áp dụng voucher
+    let discountAmount = 0;
+    let appliedVoucher = null;
+    if (voucherId) {
+      const voucher = await Voucher.findById(voucherId);
+      const now = new Date();
+      if (!voucher || !voucher.isActive || now < voucher.startDate || now > voucher.endDate) {
+        throw new Error("Voucher is not valid or expired");
+      }
+      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
+        throw new Error("Voucher usage limit reached");
+      }
+      // Kiểm tra minPurchase
+      const subtotal = seatTotal + comboTotal;
+      if (voucher.minPurchase && subtotal < voucher.minPurchase) {
+        throw new Error(`Minimum purchase for this voucher is ${voucher.minPurchase}`);
+      }
+      // Kiểm tra applicableMovies/applicableBranches nếu có
+      if (voucher.applicableMovies && voucher.applicableMovies.length > 0) {
+        if (!voucher.applicableMovies.some(mId => mId.toString() === showtime.movie._id.toString())) {
+          throw new Error("Voucher is not applicable for this movie");
+        }
+      }
+      if (voucher.applicableBranches && voucher.applicableBranches.length > 0) {
+        if (!voucher.applicableBranches.some(bId => bId.toString() === showtime.branch?.toString())) {
+          throw new Error("Voucher is not applicable for this branch");
+        }
+      }
+      // Tính discount
+      if (voucher.discountType === "percentage") {
+        discountAmount = Math.floor((seatTotal + comboTotal) * voucher.discountValue / 100);
+        if (voucher.maxDiscount > 0) {
+          discountAmount = Math.min(discountAmount, voucher.maxDiscount);
+        }
+      } else if (voucher.discountType === "fixed") {
+        discountAmount = voucher.discountValue;
+        if (voucher.maxDiscount > 0) {
+          discountAmount = Math.min(discountAmount, voucher.maxDiscount);
+        }
+      }
+      appliedVoucher = voucher._id;
+    }
+
+    // 4. Tính tổng tiền cuối cùng
+    const totalAmount = Math.max(seatTotal + comboTotal - discountAmount, 0);
+
+    // 5. Tạo booking
     const booking = await Booking.create({
       user: userId,
       showtime: showtimeId,
@@ -47,9 +114,10 @@ const createBooking = asyncHandler(async (req, res) => {
         type: status.seat.type,
         price: status.price,
       })),
-      totalAmount: totalPrice,
-      combos,
-      voucher: voucherId,
+      totalAmount,
+      combos: comboDetails,
+      voucher: appliedVoucher,
+      discountAmount,
       paymentStatus: "pending",
       bookingStatus: "pending",
     });

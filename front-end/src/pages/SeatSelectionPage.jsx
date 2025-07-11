@@ -64,20 +64,19 @@ const SeatSelectionPage = () => {
           user._id
       );
 
-      // 2. Create a pending booking record
-      const bookingResponse = await bookingService.createBooking({
-        showtimeId,
-        seatIds: selectedSeats.map((s) => s._id),
-        totalPrice,
+      // 2. Chuyển hướng sang trang review đặt vé
+      // Đảm bảo mỗi seat có trường price
+      const seatsWithPrice = selectedSeats.map(s => ({
+        ...s,
+        price: s.price !== undefined ? s.price : (s.availability?.price || 0),
+      }));
+      navigate("/booking-review", {
+        state: {
+          showtimeId,
+          selectedSeats: seatsWithPrice,
+          totalPrice,
+        },
       });
-
-      if (bookingResponse.success) {
-        // 3. Navigate to the booking page for payment
-        navigate(`/booking/${bookingResponse.booking._id}`);
-      } else {
-        throw new Error(bookingResponse.message || "Could not create booking record.");
-      }
-
     } catch (err) {
       console.error("Error during booking initiation:", err);
       const errorMessage = err.response?.data?.message || err.message || "An unexpected error occurred.";
