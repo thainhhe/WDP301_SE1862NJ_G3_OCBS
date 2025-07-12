@@ -30,7 +30,7 @@ import userRoutes from "./routes/userRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import voucherRoutes from "./routes/voucherRoutes.js";
-import comboRoutes from './routes/comboRoutes.js';
+import comboRoutes from "./routes/comboRoutes.js";
 //import debugRoutes from "./routes/debugRoutes.js";
 
 const app = express();
@@ -87,7 +87,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/theaters", theaterRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/vouchers", voucherRoutes);
-app.use('/api/combos', comboRoutes);
+app.use("/api/combos", comboRoutes);
 
 //app.use("/api/debug", debugRoutes);
 
@@ -105,6 +105,6 @@ cleanupExpiredReservations();
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
