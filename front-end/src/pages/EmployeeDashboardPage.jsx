@@ -2,9 +2,11 @@ import React from 'react';
 import { Box, Typography, Card, Avatar, Button } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboardPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <Box>
@@ -28,13 +30,10 @@ const EmployeeDashboardPage = () => {
           size="large"
           startIcon={<QrCodeScannerIcon fontSize="large" />}
           sx={{ px: 6, py: 3, fontSize: 20, borderRadius: 3 }}
-          disabled
+          onClick={() => navigate('/admin/qr-checkin')}
         >
           Quét mã QR vé
         </Button>
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
-          (Chức năng quét mã QR sẽ sớm có mặt)
-        </Typography>
       </Box>
     </Box>
   );

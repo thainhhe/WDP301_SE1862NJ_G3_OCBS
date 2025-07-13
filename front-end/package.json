@@ -1,5 +1,5 @@
 {
-  "name": "movie-ticket-booking-frontend",
+  "name": "ocbs-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,17 +10,35 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@hookform/resolvers": "^5.1.1",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
+    "@mui/x-date-pickers": "^8.8.0",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-slot": "^1.2.3",
+    "antd": "^5.26.4",
     "axios": "^1.9.0",
+    "class-variance-authority": "^0.7.1",
+    "date-fns": "^4.1.0",
+    "install": "^0.13.0",
+    "lucide-react": "^0.515.0",
+    "npm": "^11.4.2",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.59.0",
+    "react-qr-scanner": "^1.0.0-alpha.11",
     "react-router-dom": "^6.30.1",
     "react-toastify": "^9.1.1",
-    "recharts": "^2.15.3"
+    "recharts": "^2.15.3",
+    "socket.io-client": "^4.7.2",
+    "sweetalert2": "^11.22.2",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/react": "^18.0.28",
@@ -32,7 +50,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.3.4",
     "postcss": "^8.4.21",
-    "tailwindcss": "^3.2.7",
+    "tailwindcss": "^3.4.17",
     "vite": "^4.2.0"
   }
 }

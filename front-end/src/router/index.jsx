@@ -10,8 +10,12 @@ import ProtectedRoute from "@router/ProtectedRoute";
 // Pages
 import Home from "@pages/Home";
 import Movies from "@pages/Movies";
+import ShowtimesPage from "@pages/ShowtimesPage";
 import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
+import SeatSelectionPage from "@pages/SeatSelectionPage";
+import BookingPage from "@pages/BookingPage";
+import BookingReviewPage from "../pages/BookingReviewPage";
 
 // Auth Pages
 import LoginPage from "@pages/auth/LoginPage";
@@ -24,7 +28,15 @@ import UserList from "@pages/admin/UserManagement/UserList";
 import AdminMovies from "@pages/admin/AdminMovies";
 import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
+import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
+import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
+import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
+import AdminCombos from "../pages/admin/AdminCombos.jsx";
+// Employee Pages
 import EmployeeDashboardPage from "@pages/EmployeeDashboardPage.jsx";
+import EmployeeQRCheckin from "@/pages/EmployeeQRCheckin";
+import EmployeeBookTicket from "@/pages/EmployeeBookTicket";
+import EmployeeBookingsPage from "@/pages/EmployeeBookingsPage";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +47,27 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "movies", element: <Movies /> },
       { path: "movies/:id", element: <MovieDetails /> },
+      { path: "showtimes", element: <ShowtimesPage /> },
+      {
+        path: "seat-selection/:showtimeId",
+        element: (
+          <ProtectedRoute>
+            <SeatSelectionPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "booking/:bookingId",
+        element: (
+          <ProtectedRoute>
+            <BookingPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "booking-review",
+        element: <BookingReviewPage />,
+      },
       {
         path: "profile",
         element: (
@@ -86,7 +119,14 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <AdminDashboardPage /> },
       { path: "employee-dashboard", element: <EmployeeDashboardPage /> },
       { path: "movies", element: <AdminMovies /> },
+      { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
+      { path: "seat-layouts", element: <SeatLayoutManagement /> },
+      { path: "vouchers", element: <AdminVouchers /> },
+      { path: "combos", element: <AdminCombos /> },
+      { path: "qr-checkin", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeQRCheckin /></ProtectedRoute> },
+      { path: "employee-book-ticket", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeBookTicket /></ProtectedRoute> },
+      { path: "employee-bookings", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeBookingsPage /></ProtectedRoute> },
     ],
   },
 ]);
