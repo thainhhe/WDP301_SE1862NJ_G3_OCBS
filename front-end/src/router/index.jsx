@@ -29,6 +29,8 @@ import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
 import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
+import AdminTheater from "@pages/admin/AdminTheater.jsx";
+import AdminBranches from "@pages/admin/AdminBranch.jsx";
 
 const router = createBrowserRouter([
   {
@@ -109,6 +111,8 @@ const router = createBrowserRouter([
       { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
       { path: "seat-layouts", element: <SeatLayoutManagement /> },
+      { path: "theaters", element: <AdminTheater /> },
+      { path: "branchs", element: <AdminBranches /> },
     ],
   },
 ]);

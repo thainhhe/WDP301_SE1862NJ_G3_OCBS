@@ -5,6 +5,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
+import TheatersIcon from "@mui/icons-material/Theaters";
+import BranchIcon from '@mui/icons-material/Theaters';
 
 const navConfig = [
   {
@@ -40,6 +42,17 @@ const navConfig = [
     text: "Seat Layout Management",
     icon: <EventSeatIcon />,
     path: "/admin/seat-layouts",
+  },
+  {
+    type: "item",
+    text: "Theater Management",
+    path: "/admin/theaters",
+    icon: <TheatersIcon />,
+  },  {
+    type: "item",
+    text: "Branch Management",
+    path: "/admin/branchs",
+    icon: <TheatersIcon />,
   },
   {
     type: "parent",

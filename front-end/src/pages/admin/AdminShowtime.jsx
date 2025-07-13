@@ -53,7 +53,6 @@ const AdminShowtimes = () => {
     theaterId: "all",
     date: "",
     search: "",
-    status: "all",
   })
   const [pagination, setPagination] = useState({
     page: 1,
@@ -98,7 +97,6 @@ const AdminShowtimes = () => {
         movieId: filters.movieId !== "all" ? filters.movieId : undefined,
         branchId: filters.branchId !== "all" ? filters.branchId : undefined,
         theaterId: filters.theaterId !== "all" ? filters.theaterId : undefined,
-        status: filters.status !== "all" ? filters.status : undefined,
         dateFrom: filters.date ? filters.date : undefined,
         dateTo: filters.date ? filters.date : undefined,
         sort: "-createdAt",
@@ -269,23 +267,6 @@ const AdminShowtimes = () => {
     }
   }
 
-  const handleStatusUpdate = async (showtimeId, newStatus) => {
-    try {
-      console.log("🔄 Updating showtime status:", showtimeId, newStatus)
-
-      await showtimeService.updateShowtimeStatus(showtimeId, newStatus)
-      setSuccess("Showtime status updated successfully!")
-      console.log("✅ Status updated successfully")
-
-      await fetchData(true) // Refresh with loader
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (error) {
-      console.error("❌ Error updating status:", error)
-      setError("Failed to update showtime status")
-      setTimeout(() => setError(null), 5000)
-    }
-  }
-
   const handleSelectShowtime = (showtimeId) => {
     setSelectedShowtimes((prev) =>
         prev.includes(showtimeId) ? prev.filter((id) => id !== showtimeId) : [...prev, showtimeId],
@@ -314,7 +295,7 @@ const AdminShowtimes = () => {
     await fetchData(true)
   }, [])
 
-  // Helper functions for your database structure
+  // Helper functions for database structure
   const getShowtimeStatus = (showtime) => {
     const now = new Date()
     const startTime = new Date(showtime.startTime)
@@ -335,8 +316,6 @@ const AdminShowtimes = () => {
         return "bg-green-100 text-green-800"
       case "completed":
         return "bg-gray-100 text-gray-800"
-      case "cancelled":
-        return "bg-red-100 text-red-800"
       case "sold-out":
         return "bg-orange-100 text-orange-800"
       default:
@@ -446,7 +425,7 @@ const AdminShowtimes = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Movie</label>
                 <Select value={filters.movieId} onValueChange={(value) => handleFilterChange("movieId", value)}>
@@ -494,22 +473,6 @@ const AdminShowtimes = () => {
                           {theater}
                         </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -705,14 +668,18 @@ const AdminShowtimes = () => {
                               <div className="font-medium">Standard</div>
                               <div className="text-green-600">{formatPrice(showtime.price?.standard || 0)}</div>
                             </div>
-                            <div className="text-center">
-                              <div className="font-medium">VIP</div>
-                              <div className="text-green-600">{formatPrice(showtime.price?.vip || 0)}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-medium">Couple</div>
-                              <div className="text-green-600">{formatPrice(showtime.price?.couple || 0)}</div>
-                            </div>
+                            {showtime.price?.vip > 0 && (
+                                <div className="text-center">
+                                  <div className="font-medium">VIP</div>
+                                  <div className="text-green-600">{formatPrice(showtime.price.vip)}</div>
+                                </div>
+                            )}
+                            {showtime.price?.couple > 0 && (
+                                <div className="text-center">
+                                  <div className="font-medium">Couple</div>
+                                  <div className="text-green-600">{formatPrice(showtime.price.couple)}</div>
+                                </div>
+                            )}
                           </div>
                         </div>
 
