@@ -64,9 +64,11 @@ const ShowtimeCard = ({ showtime }) => {
     };
 
     // Calculate available seats
-    const availableSeats = showtime.totalSeats - (showtime.bookedSeats || 0);
-    const occupancyPercentage = showtime.totalSeats > 0
-        ? Math.round(((showtime.bookedSeats || 0) / showtime.totalSeats) * 100)
+    const totalSeats = typeof showtime.totalSeats === 'number' ? showtime.totalSeats : 0;
+    const bookedSeats = typeof showtime.bookedSeats === 'number' ? showtime.bookedSeats : 0;
+    const availableSeats = totalSeats - bookedSeats;
+    const occupancyPercentage = totalSeats > 0
+        ? Math.round((bookedSeats / totalSeats) * 100)
         : 0;
 
     return (
@@ -150,7 +152,7 @@ const ShowtimeCard = ({ showtime }) => {
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-gray-700">Seats</span>
                         <span className="text-sm text-gray-600">
-              {availableSeats} / {showtime.totalSeats || 0} available
+              {availableSeats} / {totalSeats} available
             </span>
                     </div>
 

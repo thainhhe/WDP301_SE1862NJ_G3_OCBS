@@ -4,6 +4,8 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TheatersIcon from '@mui/icons-material/Theaters';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAuth } from '@context/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -28,7 +30,17 @@ const EmployeeSidebar = ({ isSidebarOpen, onToggleSidebar, sidebarWidth, isMobil
         {
             text: 'Quét mã QR vé',
             icon: <QrCodeScannerIcon />,
-            path: '/admin/employee-dashboard',
+            path: '/admin/qr-checkin',
+        },
+        {
+            text: 'Đặt vé cho khách',
+            icon: <AssignmentIcon />,
+            path: '/admin/employee-book-ticket',
+        },
+        {
+            text: 'Danh sách vé đã đặt',
+            icon: <AssignmentIcon />,
+            path: '/admin/employee-bookings',
         },
     ];
 
@@ -44,7 +56,7 @@ const EmployeeSidebar = ({ isSidebarOpen, onToggleSidebar, sidebarWidth, isMobil
             <List component="nav" sx={{ flexGrow: 1, p: 0, py: 1 }}>
                 {menuItems.map((item, idx) => (
                     <ListItem
-                        button
+                        button={true}
                         key={item.text}
                         selected={location.pathname === item.path}
                         onClick={() => navigate(item.path)}
@@ -54,7 +66,7 @@ const EmployeeSidebar = ({ isSidebarOpen, onToggleSidebar, sidebarWidth, isMobil
                         <ListItemText primary={item.text} />
                     </ListItem>
                 ))}
-                <ListItem button onClick={handleLogout} sx={{ color: 'white' }}>
+                <ListItem button={true} onClick={handleLogout} sx={{ color: 'white' }}>
                     <ListItemIcon sx={{ color: 'inherit' }}><LogoutIcon /></ListItemIcon>
                     <ListItemText primary="Đăng xuất" />
                 </ListItem>
@@ -97,4 +109,4 @@ const EmployeeSidebar = ({ isSidebarOpen, onToggleSidebar, sidebarWidth, isMobil
     );
 };
 
-export default EmployeeSidebar;
+export default EmployeeSidebar; 

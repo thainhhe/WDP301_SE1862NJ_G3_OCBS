@@ -32,6 +32,12 @@ import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
 import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
 import AdminCombos from "../pages/admin/AdminCombos.jsx";
+// Employee Pages
+import EmployeeDashboardPage from "@pages/EmployeeDashboardPage.jsx";
+import EmployeeQRCheckin from "@/pages/EmployeeQRCheckin";
+import EmployeeBookTicket from "@/pages/EmployeeBookTicket";
+import EmployeeBookingsPage from "@/pages/EmployeeBookingsPage";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -111,12 +117,16 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <AdminDashboardPage /> },
+      { path: "employee-dashboard", element: <EmployeeDashboardPage /> },
       { path: "movies", element: <AdminMovies /> },
       { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
       { path: "seat-layouts", element: <SeatLayoutManagement /> },
       { path: "vouchers", element: <AdminVouchers /> },
       { path: "combos", element: <AdminCombos /> },
+      { path: "qr-checkin", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeQRCheckin /></ProtectedRoute> },
+      { path: "employee-book-ticket", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeBookTicket /></ProtectedRoute> },
+      { path: "employee-bookings", element: <ProtectedRoute allowedRoles={["employee"]}><EmployeeBookingsPage /></ProtectedRoute> },
     ],
   },
 ]);
