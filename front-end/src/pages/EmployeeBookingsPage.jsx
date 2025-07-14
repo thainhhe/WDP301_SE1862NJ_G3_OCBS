@@ -35,6 +35,11 @@ const EmployeeBookingsPage = () => {
       }
     };
     fetchBookings();
+
+    // Lắng nghe sự kiện check-in để reload danh sách
+    const handleCheckedIn = () => fetchBookings();
+    window.addEventListener('bookingCheckedIn', handleCheckedIn);
+    return () => window.removeEventListener('bookingCheckedIn', handleCheckedIn);
   }, []);
 
   return (
@@ -62,7 +67,7 @@ const EmployeeBookingsPage = () => {
                   <TableCell>{b.showtime?.startTime ? new Date(b.showtime.startTime).toLocaleString() : ""}</TableCell>
                   <TableCell>{b.seats?.map(s => s.row + s.number).join(", ")}</TableCell>
                   <TableCell>{b.customerInfo?.name || b.user?.name || ""}</TableCell>
-                  <TableCell>{b.bookingStatus}</TableCell>
+                  <TableCell>{b.checkedIn ? 'Đã check-in' : 'Chưa check-in'}</TableCell>
                   <TableCell>
                     <IconButton color="primary" onClick={() => handleShowQR(b)} size="small">
                       <QrCodeIcon />
