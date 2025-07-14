@@ -17,7 +17,7 @@ export const bookingService = {
   // Get user bookings
   async getUserBookings(params = {}) {
     try {
-      const response = await api.get("/bookings/user", { params });
+      const response = await api.get("/bookings/my-bookings", { params });
       return response.data;
     } catch (error) {
       console.error("Error fetching user bookings:", error);

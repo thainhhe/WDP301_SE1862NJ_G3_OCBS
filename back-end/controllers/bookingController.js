@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import Combo from "../models/comboModel.js";
 import Voucher from "../models/voucherModel.js";
 import QRCode from "qrcode";
+import { sendEmail } from "../utils/emailService.js";
 
 // Create a PENDING booking - POST /api/bookings - Private
 const createBooking = asyncHandler(async (req, res) => {
@@ -225,14 +226,21 @@ const getBookingById = asyncHandler(async (req, res) => {
 // Update payment status - PUT /api/bookings/:id/payment - Private
 const updatePaymentStatus = asyncHandler(async (req, res) => {
   const { paymentStatus, transactionId, paymentMethod } = req.body;
-  const booking = await Booking.findById(req.params.id);
+  const booking = await Booking.findById(req.params.id).populate({
+    path: "showtime",
+    populate: [
+      { path: "movie", select: "title poster duration" },
+      { path: "theater", select: "name" },
+      { path: "branch", select: "name location" },
+    ],
+  }).populate("user", "name email");
 
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString()) {
+  if (booking.user._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Not authorized to update this booking");
   }
@@ -246,16 +254,38 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
 
     const seatIds = booking.seats.map(s => s._id);
     await SeatStatus.updateMany(
-        { showtime: booking.showtime, seat: { $in: seatIds } },
+        { showtime: booking.showtime._id, seat: { $in: seatIds } },
         { $set: { status: 'booked', reservedBy: null, reservationExpires: null } }
     );
 
-    broadcastSeatUpdate(booking.showtime.toString(), {
+    broadcastSeatUpdate(booking.showtime._id.toString(), {
       type: 'seats-booked',
       seatIds: seatIds,
       bookingId: booking._id,
     });
 
+    // Gửi email xác nhận vé cho user
+    if (booking.user && booking.user.email) {
+      const emailHtml = `
+        <h2>Chúc mừng bạn đã đặt vé thành công!</h2>
+        <p><b>Phim:</b> ${booking.showtime.movie.title}</p>
+        <p><b>Suất chiếu:</b> ${new Date(booking.showtime.startTime).toLocaleString()}</p>
+        <p><b>Rạp:</b> ${booking.showtime.branch?.name || ""} - ${booking.showtime.theater?.name || ""}</p>
+        <p><b>Ghế:</b> ${booking.seats.map(s => s.row + s.number).join(", ")}</p>
+        <p><b>Trạng thái:</b> Đã thanh toán</p>
+        <p><b>Mã QR:</b></p>
+        <img src="${booking.qrCode}" alt="QR Code" style="width:180px;height:180px;" />
+      `;
+      try {
+        await sendEmail({
+          email: booking.user.email,
+          subject: "Xác nhận đặt vé thành công",
+          html: emailHtml,
+        });
+      } catch (err) {
+        console.error("Gửi email xác nhận vé thất bại:", err);
+      }
+    }
   } else if (paymentStatus === "failed") {
     booking.bookingStatus = "cancelled";
 
