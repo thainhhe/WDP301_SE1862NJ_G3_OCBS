@@ -7,6 +7,13 @@ class SocketService {
   }
 
   connect(token) {
+    // Chỉ kết nối nếu chưa có socket nào hoặc socket đã bị ngắt kết nối.
+    // Không ngắt một kết nối đang hoạt động.
+    if (this.socket && this.socket.connected) {
+      console.log("🔌 Already connected to WebSocket server.");
+      return; // Dừng lại, không làm gì cả
+    }
+
     if (this.socket) {
       this.disconnect();
     }
