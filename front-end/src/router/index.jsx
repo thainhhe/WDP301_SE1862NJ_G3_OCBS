@@ -32,6 +32,8 @@ import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
 import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
 import AdminCombos from "../pages/admin/AdminCombos.jsx";
+import AdminTheater from "@pages/admin/AdminTheater.jsx";
+import AdminBranches from "@pages/admin/AdminBranch.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -117,6 +119,8 @@ const router = createBrowserRouter([
       { path: "seat-layouts", element: <SeatLayoutManagement /> },
       { path: "vouchers", element: <AdminVouchers /> },
       { path: "combos", element: <AdminCombos /> },
+      { path: "theaters", element: <AdminTheater /> },
+      { path: "branchs", element: <AdminBranches /> },
     ],
   },
 ]);
