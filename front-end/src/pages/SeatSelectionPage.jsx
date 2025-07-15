@@ -11,13 +11,14 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import CustomerSeatSelection from "@/components/booking/CustomerSeatSelection";
 import { showtimeService } from "../services/showtimeService";
 import { bookingService } from "../services/bookingService";
-import socketService from "../services/socketService";
 import { seatService } from "../services/seatService";
-import { seatStatusService } from "../services/seatStatusService";
+import { useAuth } from "../context/AuthContext";
+import socketService from "../services/socketService";
 
 const SeatSelectionPage = () => {
   const { showtimeId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [showtime, setShowtime] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -35,7 +36,6 @@ const SeatSelectionPage = () => {
     try {
       setLoading(true);
       setError(null);
-
       const data = await showtimeService.getShowtimeById(showtimeId);
       setShowtime(data);
     } catch (error) {
@@ -46,199 +46,89 @@ const SeatSelectionPage = () => {
     }
   };
 
-  // const handleBookSeats = async () => {
-  //   try {
-  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-  //     const userId = userInfo?._id || localStorage.getItem("userId");
-  //     if (!userId) {
-  //       setError("Vui lòng đăng nhập để đặt vé.");
-  //       setTimeout(() => setError(null), 5000);
-  //       return;
-  //     }
-
-  //     if (selectedSeats.length === 0) {
-  //       setError("Vui lòng chọn ít nhất một ghế trước khi đặt vé.");
-  //       setTimeout(() => setError(null), 5000);
-  //       return;
-  //     }
-
-  //     // Kiểm tra trạng thái ghế
-  //     const latestStatus = await seatService.getSeatAvailability(showtimeId);
-  //     const invalidSeats = selectedSeats.filter(
-  //       (seat) =>
-  //         !latestStatus.some(
-  //           (ls) =>
-  //             ls._id === seat._id &&
-  //             ["available", "reserved"].includes(ls.availability?.status)
-  //         )
-  //     );
-  //     if (invalidSeats.length > 0) {
-  //       setError("Một số ghế không còn trống hoặc không hợp lệ.");
-  //       setTimeout(() => setError(null), 5000);
-  //       return;
-  //     }
-
-  //     // Đặt ghế thành trạng thái reserved
-  //     await seatService.reserveSeats(
-  //       showtimeId,
-  //       selectedSeats.map((s) => s._id),
-  //       userId
-  //     );
-
-  //     // Tạo booking
-  //     const bookingResponse = await bookingService.createBooking({
-  //       showtimeId,
-  //       seatIds: selectedSeats.map((s) => s._id), // Đổi từ seats sang seatIds
-  //       totalPrice,
-  //       combos: [], // Thêm mặc định
-  //       voucherId: null, // Thêm mặc định
-  //       paymentMethod: null, // Thêm mặc định
-  //     });
-  //     const bookingId = bookingResponse.booking._id; // Cập nhật lấy _id từ response đúng cấu trúc
-
-  //     // Đặt ghế
-  //     await seatService.bookSeats(
-  //       showtimeId,
-  //       selectedSeats.map((s) => s._id),
-  //       bookingId
-  //     );
-
-  //     // Gửi sự kiện initiate-payment
-  //     socketService.initiatePayment(
-  //       showtimeId,
-  //       selectedSeats.map((seat) => seat._id)
-  //     );
-
-  //     // Chuyển đến trang booking
-  //     navigate(`/booking/${bookingId}`);
-  //   } catch (error) {
-  //     console.error("Error booking seats:", {
-  //       error: error.message,
-  //       showtimeId,
-  //       seatIds: selectedSeats.map((s) => s._id),
-  //     });
-  //     setError(
-  //       error.message || "Không thể bắt đầu quá trình đặt vé. Vui lòng thử lại."
-  //     );
-  //     setTimeout(() => setError(null), 5000);
-  //   }
-  // };
+  // ✅ Thêm useEffect này để quản lý kết nối WebSocket
+  useEffect(() => {
+    // Chỉ kết nối nếu có showtimeId
+    if (showtimeId) {
+      const token = localStorage.getItem("token");
+      socketService.connect(token);
+      socketService.joinShowtime(showtimeId);
+    }
+    // Dọn dẹp kết nối khi component bị hủy
+    return () => {
+      if (showtimeId) {
+        socketService.leaveShowtime(showtimeId);
+        // Không ngắt kết nối hoàn toàn để có thể dùng ở trang sau
+      }
+    };
+  }, [showtimeId]);
 
   const handleBookSeats = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const userId = userInfo?._id || localStorage.getItem("userId");
-      if (!userId) {
+      if (!user) {
         setError("Please log in to book tickets.");
-        setTimeout(() => setError(null), 5000);
         return;
       }
 
       if (selectedSeats.length === 0) {
-        setError("Please select at least one seat before booking.");
-        setTimeout(() => setError(null), 5000);
+        setError("Please select at least one seat.");
         return;
       }
 
-      // Đặt trước ghế
+      // 1. Reserve seats first
       await seatService.reserveSeats(
         showtimeId,
         selectedSeats.map((s) => s._id),
-        userId
+        user._id
       );
 
-      // Kiểm tra trạng thái ghế sau khi đặt trước
-      const latestStatus = await seatStatusService.getSeatStatusByShowtime(
-        showtimeId
-      );
-      console.log(
-        "Selected:",
-        selectedSeats.map((s) => s._id)
-      );
-      console.log("Latest seat statuses:", latestStatus.seatStatuses);
-      const invalidSeats = selectedSeats.filter(
-        (seat) =>
-          !latestStatus.seatStatuses.some((ls) => {
-            console.log(
-              "Comparing seat._id:",
-              seat._id,
-              "with ls.seat._id:",
-              ls.seat._id.toString()
-            );
-            console.log(
-              "Status:",
-              ls.status,
-              "ReservedBy:",
-              ls.reservedBy?.toString(),
-              "UserId:",
-              userId
-            );
-            return (
-              ls.seat._id.toString() === seat._id &&
-              ls.status === "reserved" &&
-              ls.reservedBy.toString() === userId
-            );
-          })
-      );
-      if (invalidSeats.length > 0) {
-        console.error("invalidSeats là:", invalidSeats);
-        setError("Some seats are no longer reserved for you.");
-        setTimeout(() => setError(null), 5000);
-        // Giải phóng các ghế đã đặt trước
-        // await seatService.releaseReservation(
-        //   showtimeId,
-        //   selectedSeats.map((s) => s._id)
-        // );
-        return;
-      }
-
-      // Tiếp tục tạo booking
-      const bookingResponse = await bookingService.createBooking({
-        showtimeId,
-        seatIds: selectedSeats.map((s) => s._id),
-        totalPrice,
-        combos: [],
-        voucherId: null,
-        paymentMethod: null,
-      });
-      const bookingId = bookingResponse.booking._id;
-
-      // Đặt ghế
-      await seatService.bookSeats(
-        showtimeId,
-        selectedSeats.map((s) => s._id),
-        bookingId
-      );
-
-      // Gửi sự kiện initiate-payment
       socketService.initiatePayment(
         showtimeId,
-        selectedSeats.map((seat) => seat._id)
+        selectedSeats.map((s) => s._id)
       );
 
-      // Chuyển đến trang booking
-      navigate(`/booking/${bookingId}`);
-    } catch (error) {
-      console.error("Error booking seats:", {
-        error: error.message,
-        showtimeId,
-        seatIds: selectedSeats.map((s) => s._id),
+      // 2. Chuyển hướng sang trang review đặt vé
+      // Đảm bảo mỗi seat có trường price
+      const seatsWithPrice = selectedSeats.map((s) => ({
+        ...s,
+        price: s.price !== undefined ? s.price : s.availability?.price || 0,
+      }));
+      navigate("/booking-review", {
+        state: {
+          showtimeId,
+          selectedSeats: seatsWithPrice,
+          totalPrice,
+        },
       });
-      setError(
-        error.message || "Unable to start booking process. Please try again."
-      );
-      setTimeout(() => setError(null), 5000);
+    } catch (err) {
+      console.error("Error during booking initiation:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "An unexpected error occurred.";
+      setError(errorMessage);
+
+      // Attempt to release seats if reservation succeeded but booking failed
+      try {
+        await seatService.releaseReservation(
+          showtimeId,
+          selectedSeats.map((s) => s._id)
+        );
+      } catch (releaseError) {
+        console.error(
+          "Failed to auto-release seats after error:",
+          releaseError
+        );
+      }
     }
   };
 
   const handleSeatSelectionChange = (seats) => {
     setSelectedSeats(seats);
-    console.log("Selected seats:", seats);
   };
 
   const handlePriceChange = (price) => {
     setTotalPrice(price);
-    console.log("Total price:", price);
   };
 
   const formatTime = (dateString) => {
@@ -320,7 +210,6 @@ const SeatSelectionPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Button
             variant="outline"
@@ -336,7 +225,6 @@ const SeatSelectionPage = () => {
           </h1>
         </div>
 
-        {/* Showtime Information */}
         {showtime && (
           <Card className="mb-8">
             <CardHeader>
@@ -344,7 +232,6 @@ const SeatSelectionPage = () => {
             </CardHeader>
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-6">
-                {/* Movie Poster */}
                 <div className="flex-shrink-0">
                   <img
                     src={
@@ -357,8 +244,6 @@ const SeatSelectionPage = () => {
                     }}
                   />
                 </div>
-
-                {/* Movie & Showtime Details */}
                 <div className="flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -371,60 +256,21 @@ const SeatSelectionPage = () => {
                           <Calendar className="w-4 h-4 mr-2" />
                           <span>{formatDate(showtime.startTime)}</span>
                         </div>
-
                         <div className="flex items-center">
                           <Clock className="w-4 h-4 mr-2" />
                           <span>{formatTime(showtime.startTime)}</span>
                         </div>
-
                         <div className="flex items-center">
                           <MapPin className="w-4 h-4 mr-2" />
                           <span>
                             {showtime.branch?.name} - {showtime.theater?.name}
                           </span>
                         </div>
-
                         {showtime.movie?.duration && (
                           <div className="flex items-center">
                             <Film className="w-4 h-4 mr-2" />
                             <span>{showtime.movie.duration} minutes</span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Special Features */}
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {showtime.is3D && (
-                          <Badge
-                            variant="outline"
-                            className="bg-blue-50 text-blue-700"
-                          >
-                            3D
-                          </Badge>
-                        )}
-                        {showtime.isSpecialShowing && (
-                          <Badge
-                            variant="outline"
-                            className="bg-purple-50 text-purple-700"
-                          >
-                            Special Showing
-                          </Badge>
-                        )}
-                        {showtime.subtitles && (
-                          <Badge
-                            variant="outline"
-                            className="bg-green-50 text-green-700"
-                          >
-                            Subtitles
-                          </Badge>
-                        )}
-                        {showtime.theater?.type === "IMAX" && (
-                          <Badge
-                            variant="outline"
-                            className="bg-red-50 text-red-700"
-                          >
-                            IMAX
-                          </Badge>
                         )}
                       </div>
                     </div>
@@ -461,7 +307,6 @@ const SeatSelectionPage = () => {
           </Card>
         )}
 
-        {/* Error Alert */}
         {error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
             <AlertDescription className="text-red-800">
@@ -470,7 +315,6 @@ const SeatSelectionPage = () => {
           </Alert>
         )}
 
-        {/* Seat Selection Component */}
         <CustomerSeatSelection
           showtimeId={showtimeId}
           onSeatSelectionChange={handleSeatSelectionChange}
@@ -478,7 +322,6 @@ const SeatSelectionPage = () => {
           maxSeats={8}
         />
 
-        {/* Book Seats Button */}
         {selectedSeats.length > 0 && (
           <Card className="mt-6">
             <CardContent className="p-6">
@@ -501,7 +344,7 @@ const SeatSelectionPage = () => {
                   className="bg-red-600 hover:bg-red-700"
                   size="lg"
                 >
-                  Book Seats
+                  Proceed to Payment
                 </Button>
               </div>
             </CardContent>

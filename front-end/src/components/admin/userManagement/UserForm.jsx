@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
     TextField, Button, Stack, FormControl, Select, MenuItem, Box,
-    Grid, Alert, RadioGroup, FormControlLabel, Radio, Typography
+    Grid, Alert, RadioGroup, FormControlLabel, Radio, Typography, FormHelperText
 } from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 
-// Component con để hiển thị label và dấu sao đỏ, giúp code chính gọn gàng hơn.
+// Component con để hiển thị label và dấu sao đỏ
 const FormLabel = ({ children, required = false }) => (
     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'text.primary' }}>
         {children}
@@ -12,132 +17,196 @@ const FormLabel = ({ children, required = false }) => (
     </Typography>
 );
 
-const UserForm = ({ onSubmit, onCancel, initialData = null, isSubmitting }) => {
-    // Khởi tạo state với tất cả các trường
-    const [formData, setFormData] = useState({
-        email: '', phone: '', role: 'user', password: '',
-        firstName: '', lastName: '', gender: 'male', address: '', dob: ''
-    });
+// Zod validation schema
+const userSchema = z.object({
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    email: z.string().min(1, 'Email is required').email('Invalid email address'),
+    phone: z.string().optional().or(z.literal('')),
+    role: z.enum(['user', 'employee', 'admin']),
+    password: z.string().optional().or(z.literal('')).refine(val => !val || val.length >= 6, {
+        message: 'Password must be at least 6 characters'
+    }),
+    gender: z.enum(['male', 'female', 'other']),
+    address: z.string().optional(),
+    dob: z.date().optional().nullable(),
+});
 
+const UserForm = ({ onFormSubmit, onCancel, initialData = null, isSubmitting }) => {
     const isEditMode = Boolean(initialData);
 
+    const {
+        control,
+        handleSubmit,
+        reset,
+        formState: { errors }
+    } = useForm({
+        resolver: zodResolver(userSchema),
+        defaultValues: {
+            firstName: '', lastName: '', email: '', phone: '',
+            role: 'user', password: '', gender: 'male', address: '', dob: null
+        }
+    });
+
     useEffect(() => {
-        // Hàm này sẽ được gọi mỗi khi initialData thay đổi
         if (isEditMode && initialData) {
             const nameParts = initialData.name?.split(' ') || [''];
             const lastName = nameParts.pop() || '';
             const firstName = nameParts.join(' ');
 
-            setFormData({
-                email: initialData.email || '',
-                phone: initialData.phone || '',
-                role: initialData.role || 'user', // <-- Đảm bảo role được gán đúng
-                password: '',
+            reset({
                 firstName: firstName,
                 lastName: lastName,
+                email: initialData.email || '',
+                phone: initialData.phone || '',
+                role: initialData.role || 'user',
+                password: '', // Luôn bắt đầu với trường mật khẩu trống
                 gender: initialData.gender || 'male',
                 address: initialData.address || '',
-                dob: initialData.dob ? new Date(initialData.dob).toISOString().split('T')[0] : ''
+                dob: initialData.dob ? new Date(initialData.dob) : null
             });
         } else {
-            // Reset form về trạng thái mặc định khi tạo mới
-            setFormData({
-                email: '', phone: '', role: 'user', password: '',
-                firstName: '', lastName: '', gender: 'male', address: '', dob: ''
+            reset({
+                firstName: '', lastName: '', email: '', phone: '',
+                role: 'user', password: '', gender: 'male', address: '', dob: null
             });
         }
-    }, [initialData, isEditMode]); // Chạy lại effect khi các prop này thay đổi
+    }, [initialData, isEditMode, reset]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const processSubmit = (data) => {
         const dataToSubmit = {
-            name: `${formData.firstName} ${formData.lastName}`.trim(),
-            email: formData.email,
-            phone: formData.phone,
-            role: formData.role,
+            name: `${data.firstName} ${data.lastName}`.trim(),
+            email: data.email,
+            phone: data.phone,
+            role: data.role,
+            gender: data.gender,
+            address: data.address,
+            dob: data.dob ? data.dob.toISOString() : null,
         };
-        if (isEditMode && formData.password) {
-            dataToSubmit.password = formData.password;
+
+        if (data.password) {
+            dataToSubmit.password = data.password;
         }
-        onSubmit(dataToSubmit);
+        onFormSubmit(dataToSubmit);
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(processSubmit)} noValidate>
             <Stack spacing={3}>
                 <Grid container spacing={3}>
-                    {/* --- Hàng 1: First Name (40%), Last Name (40%), Role (20%) --- */}
-                    <Grid item xs={12} sm={5}>
+                    <Grid size={{ xs: 12, sm: 5 }}>
                         <FormLabel required>First Name</FormLabel>
-                        <TextField name="firstName" value={formData.firstName} onChange={handleChange} required fullWidth size="small" />
+                        <Controller
+                            name="firstName"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField {...field} required fullWidth size="small" error={!!errors.firstName} helperText={errors.firstName?.message} />
+                            )}
+                        />
                     </Grid>
-                    <Grid item xs={12} sm={5}>
+                    <Grid size={{ xs: 12, sm: 5 }}>
                         <FormLabel required>Last Name</FormLabel>
-                        <TextField name="lastName" value={formData.lastName} onChange={handleChange} required fullWidth size="small" />
+                        <Controller
+                            name="lastName"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField {...field} required fullWidth size="small" error={!!errors.lastName} helperText={errors.lastName?.message} />
+                            )}
+                        />
                     </Grid>
-                    <Grid item xs={12} sm={2}>
+                    <Grid size={{ xs: 12, sm: 2 }}>
                         <FormLabel required>Role</FormLabel>
-                        <FormControl fullWidth size="small">
-                            {/* FIX: Thêm displayEmpty để hiển thị đúng khi giá trị là '' */}
-                            <Select name="role" value={formData.role} onChange={handleChange} displayEmpty>
-                                <MenuItem value="user">User</MenuItem>
-                                <MenuItem value="employee">Employee</MenuItem>
-                                <MenuItem value="admin">Admin</MenuItem>
-                            </Select>
+                        <FormControl fullWidth size="small" error={!!errors.role}>
+                            <Controller
+                                name="role"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select {...field}>
+                                        <MenuItem value="user">User</MenuItem>
+                                        <MenuItem value="employee">Employee</MenuItem>
+                                        <MenuItem value="admin">Admin</MenuItem>
+                                    </Select>
+                                )}
+                            />
+                            {errors.role && <FormHelperText>{errors.role.message}</FormHelperText>}
                         </FormControl>
                     </Grid>
 
-                    {/* --- Hàng 2: Date of Birth & Gender --- */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <FormLabel>Date of Birth</FormLabel>
-                        <TextField type="date" name="dob" value={formData.dob} onChange={handleChange} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <Controller
+                                name="dob"
+                                control={control}
+                                render={({ field }) => (
+                                    <DatePicker {...field} sx={{ width: '100%' }} slotProps={{ textField: { size: 'small', fullWidth: true, error: !!errors.dob, helperText: errors.dob?.message } }} />
+                                )}
+                            />
+                        </LocalizationProvider>
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <FormControl>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <FormControl error={!!errors.gender}>
                             <FormLabel>Gender</FormLabel>
-                            <RadioGroup row name="gender" value={formData.gender} onChange={handleChange}>
-                                <FormControlLabel value="male" control={<Radio size="small" />} label="Male" />
-                                <FormControlLabel value="female" control={<Radio size="small" />} label="Female" />
-                                <FormControlLabel value="other" control={<Radio size="small" />} label="Other" />
-                            </RadioGroup>
+                            <Controller
+                                name="gender"
+                                control={control}
+                                render={({ field }) => (
+                                    <RadioGroup row {...field}>
+                                        <FormControlLabel value="male" control={<Radio size="small" />} label="Male" />
+                                        <FormControlLabel value="female" control={<Radio size="small" />} label="Female" />
+                                        <FormControlLabel value="other" control={<Radio size="small" />} label="Other" />
+                                    </RadioGroup>
+                                )}
+                            />
+                            {errors.gender && <FormHelperText>{errors.gender.message}</FormHelperText>}
                         </FormControl>
                     </Grid>
 
-                    {/* --- Hàng 3: Email & Phone (50% / 50%) --- */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <FormLabel required>Email Address</FormLabel>
-                        <TextField name="email" type="email" value={formData.email} onChange={handleChange} required fullWidth size="small" />
+                        <Controller
+                            name="email"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField {...field} type="email" required fullWidth size="small" error={!!errors.email} helperText={errors.email?.message} />
+                            )}
+                        />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <FormLabel>Phone Number</FormLabel>
-                        <TextField name="phone" value={formData.phone} onChange={handleChange} fullWidth size="small" />
+                        <Controller
+                            name="phone"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField {...field} fullWidth size="small" error={!!errors.phone} helperText={errors.phone?.message} />
+                            )}
+                        />
                     </Grid>
 
-                    {/* --- Password (Chỉ hiển thị ở chế độ Edit) --- */}
                     {isEditMode && (
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <FormLabel>New Password</FormLabel>
-                            <TextField
-                                name="password" type="password" value={formData.password} onChange={handleChange} fullWidth size="small"
-                                placeholder="Leave blank to keep current password"
+                            <Controller
+                                name="password"
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field} type="password" fullWidth size="small"
+                                        placeholder="Leave blank to keep current password"
+                                        error={!!errors.password} helperText={errors.password?.message}
+                                    />
+                                )}
                             />
                         </Grid>
                     )}
                 </Grid>
 
-                {/* Thông báo mật khẩu cho chế độ Create */}
                 {!isEditMode && (
                     <Alert severity="info" variant="outlined" sx={{ mt: 1 }}>
                         A secure, random password will be generated and sent to the user's email address.
                     </Alert>
                 )}
 
-                {/* Các nút hành động */}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 2 }}>
                     <Button onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={isSubmitting}>

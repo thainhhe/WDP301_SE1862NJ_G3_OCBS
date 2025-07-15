@@ -15,6 +15,7 @@ import ProfilePage from "@pages/profile/ProfilePage";
 import MovieDetails from "@pages/MovieDetails";
 import SeatSelectionPage from "@pages/SeatSelectionPage";
 import BookingPage from "@pages/BookingPage";
+import BookingReviewPage from "../pages/BookingReviewPage";
 
 // Auth Pages
 import LoginPage from "@pages/auth/LoginPage";
@@ -29,9 +30,8 @@ import DashboardLayout from "@/layout/DashboardLayout.jsx";
 import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
 import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
-import AdminTheater from "@pages/admin/AdminTheater.jsx";
-import AdminBranches from "@pages/admin/AdminBranch.jsx";
-
+import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
+import AdminCombos from "../pages/admin/AdminCombos.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -51,12 +51,16 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "booking/:showtimeId",
+        path: "booking/:bookingId",
         element: (
           <ProtectedRoute>
             <BookingPage />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "booking-review",
+        element: <BookingReviewPage />,
       },
       {
         path: "profile",
@@ -111,8 +115,8 @@ const router = createBrowserRouter([
       { path: "showtimes", element: <AdminShowtimes /> },
       { path: "users", element: <UserList /> },
       { path: "seat-layouts", element: <SeatLayoutManagement /> },
-      { path: "theaters", element: <AdminTheater /> },
-      { path: "branchs", element: <AdminBranches /> },
+      { path: "vouchers", element: <AdminVouchers /> },
+      { path: "combos", element: <AdminCombos /> },
     ],
   },
 ]);
