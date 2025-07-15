@@ -266,6 +266,9 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
 
     // Gửi email xác nhận vé cho user
     if (booking.user && booking.user.email) {
+      // Tạo QR code buffer để đính kèm
+      const qrData = booking._id.toString();
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, { type: 'png', width: 300 });
       const emailHtml = `
         <h2>Chúc mừng bạn đã đặt vé thành công!</h2>
         <p><b>Phim:</b> ${booking.showtime.movie.title}</p>
@@ -273,14 +276,20 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
         <p><b>Rạp:</b> ${booking.showtime.branch?.name || ""} - ${booking.showtime.theater?.name || ""}</p>
         <p><b>Ghế:</b> ${booking.seats.map(s => s.row + s.number).join(", ")}</p>
         <p><b>Trạng thái:</b> Đã thanh toán</p>
-        <p><b>Mã QR:</b></p>
-        <img src="${booking.qrCode}" alt="QR Code" style="width:180px;height:180px;" />
+        <p><b>Mã QR:</b> <i>(Vui lòng mở file đính kèm để check-in tại rạp)</i></p>
       `;
       try {
         await sendEmail({
-          email: booking.user.email,
+          to: booking.user.email,
           subject: "Xác nhận đặt vé thành công",
           html: emailHtml,
+          attachments: [
+            {
+              filename: 'qrcode.png',
+              content: qrCodeBuffer,
+              contentType: 'image/png',
+            },
+          ],
         });
       } catch (err) {
         console.error("Gửi email xác nhận vé thất bại:", err);
