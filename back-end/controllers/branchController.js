@@ -9,7 +9,7 @@ const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 // @access  Public
 export const getAllBranches = async (req, res) => {
     try {
-        const branches = await Branch.find({ isActive: true })
+        const branches = await Branch.find()
             .populate('theaters', 'name capacity seatLayout');
         return res.json(branches);
     } catch (err) {
