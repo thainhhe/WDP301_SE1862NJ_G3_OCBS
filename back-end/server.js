@@ -9,7 +9,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
-import cleanupExpiredReservations from "./jobs/cleanupExpiredReservations.js";
+import startCleanupJob from "./jobs/cleanupExpiredReservations.js";
 import { initializeSocketHandlers } from "./socket/socketHandlers.js";
 
 // Load env
@@ -101,7 +101,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ✅ Start cleanup job
-cleanupExpiredReservations();
+startCleanupJob();
 
 // Start server
 const PORT = process.env.PORT || 5000;
