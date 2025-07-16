@@ -76,6 +76,15 @@ const bookingSchema = mongoose.Schema(
     transactionId: {
       type: String,
     },
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    customerInfo: {
+      name: { type: String },
+      email: { type: String },
+      phone: { type: String },
+    },
   },
   {
     timestamps: true,

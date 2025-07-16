@@ -17,7 +17,7 @@ export const bookingService = {
   // Get user bookings
   async getUserBookings(params = {}) {
     try {
-      const response = await api.get("/bookings/user", { params });
+      const response = await api.get("/bookings/my-bookings", { params });
       return response.data;
     } catch (error) {
       console.error("Error fetching user bookings:", error);
@@ -64,6 +64,16 @@ export const bookingService = {
       );
     }
   },
+
+  async getAllBookingsForEmployee() {
+    try {
+      const response = await api.get("/bookings/employee-all");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching all bookings for employee:", error);
+      throw new Error("Failed to fetch bookings for employee");
+    }
+  },
 };
 
 export const paymentService = {
@@ -106,3 +116,6 @@ export const paymentService = {
     }
   },
 };
+
+export const verifyTicket = (qrCode) => api.post('/bookings/verify-ticket', { qrCode });
+export const checkInTicket = (bookingId) => api.post('/bookings/check-in', { bookingId });

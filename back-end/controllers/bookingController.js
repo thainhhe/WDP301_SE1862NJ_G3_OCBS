@@ -6,6 +6,8 @@ import { broadcastSeatUpdate } from "../socket/socketHandlers.js";
 import mongoose from "mongoose";
 import Combo from "../models/comboModel.js";
 import Voucher from "../models/voucherModel.js";
+import QRCode from "qrcode";
+import { sendEmail } from "../utils/emailService.js";
 
 // Create a PENDING booking - POST /api/bookings - Private
 const createBooking = asyncHandler(async (req, res) => {
@@ -14,8 +16,17 @@ const createBooking = asyncHandler(async (req, res) => {
     seatIds,
     combos = [],
     voucherId,
+    employeeMode,
+    customerInfo,
   } = req.body;
-  const userId = req.user._id;
+  let userId = req.user._id;
+  let employeeId = undefined;
+  let customerInfoData = undefined;
+  if (employeeMode) {
+    employeeId = req.user._id;
+    userId = null; // Đặt vé cho khách chưa có tài khoản
+    if (customerInfo) customerInfoData = customerInfo;
+  }
 
   try {
     const showtime = await Showtime.findById(showtimeId).populate("movie");
@@ -106,6 +117,8 @@ const createBooking = asyncHandler(async (req, res) => {
     // 5. Tạo booking
     const booking = await Booking.create({
       user: userId,
+      employeeId,
+      customerInfo: customerInfoData,
       showtime: showtimeId,
       seats: seatStatuses.map((status) => ({
         _id: status.seat._id,
@@ -126,6 +139,12 @@ const createBooking = asyncHandler(async (req, res) => {
       res.status(500);
       throw new Error("Failed to create booking record");
     }
+
+    // Tạo mã QR cho booking (dùng booking._id làm nội dung QR)
+    const qrData = booking._id.toString();
+    const qrCodeBase64 = await QRCode.toDataURL(qrData);
+    booking.qrCode = qrCodeBase64;
+    await booking.save();
 
     // Link the seat statuses to this new pending booking
     await SeatStatus.updateMany(
@@ -207,14 +226,21 @@ const getBookingById = asyncHandler(async (req, res) => {
 // Update payment status - PUT /api/bookings/:id/payment - Private
 const updatePaymentStatus = asyncHandler(async (req, res) => {
   const { paymentStatus, transactionId, paymentMethod } = req.body;
-  const booking = await Booking.findById(req.params.id);
+  const booking = await Booking.findById(req.params.id).populate({
+    path: "showtime",
+    populate: [
+      { path: "movie", select: "title poster duration" },
+      { path: "theater", select: "name" },
+      { path: "branch", select: "name location" },
+    ],
+  }).populate("user", "name email");
 
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString()) {
+  if (booking.user._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Not authorized to update this booking");
   }
@@ -228,16 +254,38 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
 
     const seatIds = booking.seats.map(s => s._id);
     await SeatStatus.updateMany(
-        { showtime: booking.showtime, seat: { $in: seatIds } },
+        { showtime: booking.showtime._id, seat: { $in: seatIds } },
         { $set: { status: 'booked', reservedBy: null, reservationExpires: null } }
     );
 
-    broadcastSeatUpdate(booking.showtime.toString(), {
+    broadcastSeatUpdate(booking.showtime._id.toString(), {
       type: 'seats-booked',
       seatIds: seatIds,
       bookingId: booking._id,
     });
 
+    // Gửi email xác nhận vé cho user
+    if (booking.user && booking.user.email) {
+      const emailHtml = `
+        <h2>Chúc mừng bạn đã đặt vé thành công!</h2>
+        <p><b>Phim:</b> ${booking.showtime.movie.title}</p>
+        <p><b>Suất chiếu:</b> ${new Date(booking.showtime.startTime).toLocaleString()}</p>
+        <p><b>Rạp:</b> ${booking.showtime.branch?.name || ""} - ${booking.showtime.theater?.name || ""}</p>
+        <p><b>Ghế:</b> ${booking.seats.map(s => s.row + s.number).join(", ")}</p>
+        <p><b>Trạng thái:</b> Đã thanh toán</p>
+        <p><b>Mã QR:</b></p>
+        <img src="${booking.qrCode}" alt="QR Code" style="width:180px;height:180px;" />
+      `;
+      try {
+        await sendEmail({
+          email: booking.user.email,
+          subject: "Xác nhận đặt vé thành công",
+          html: emailHtml,
+        });
+      } catch (err) {
+        console.error("Gửi email xác nhận vé thất bại:", err);
+      }
+    }
   } else if (paymentStatus === "failed") {
     booking.bookingStatus = "cancelled";
 
@@ -318,10 +366,72 @@ const cancelBooking = asyncHandler(async (req, res) => {
   });
 });
 
+// Xác thực vé từ mã QR
+const verifyTicket = asyncHandler(async (req, res) => {
+  const { qrCode } = req.body;
+  const booking = await Booking.findOne({ _id: qrCode })
+    .populate({
+      path: "showtime",
+      populate: [
+        { path: "movie", select: "title" },
+        { path: "theater", select: "name" },
+        { path: "branch", select: "name location" }
+      ]
+    });
+  if (!booking) {
+    return res.status(404).json({ valid: false, message: "Vé không tồn tại!" });
+  }
+  res.json({
+    valid: true,
+    checkedIn: booking.checkedIn,
+    ticket: {
+      bookingId: booking._id,
+      movie: booking.showtime.movie.title,
+      showtime: booking.showtime.startTime,
+      theater: booking.showtime.theater.name,
+      branch: booking.showtime.branch.name,
+      seats: booking.seats.map(s => `${s.row}${s.number}`),
+      checkedIn: booking.checkedIn,
+    }
+  });
+});
+
+// Xác nhận vé đã sử dụng
+const checkInTicket = asyncHandler(async (req, res) => {
+  const { bookingId } = req.body;
+  const booking = await Booking.findById(bookingId);
+  if (!booking) {
+    return res.status(404).json({ success: false, message: "Vé không tồn tại!" });
+  }
+  if (booking.checkedIn) {
+    return res.status(400).json({ success: false, message: "Vé đã được sử dụng!" });
+  }
+  booking.checkedIn = true;
+  booking.checkedInAt = new Date();
+  await booking.save();
+  res.json({ success: true, message: "Xác nhận vé thành công!" });
+});
+
+// Lấy tất cả booking do employee tạo hoặc tất cả booking (cho admin)
+const getAllBookingsForEmployee = asyncHandler(async (req, res) => {
+  // Trả về tất cả booking cho employee và admin
+  const bookings = await Booking.find({})
+    .populate({
+      path: 'showtime',
+      populate: { path: 'movie', select: 'title' }
+    })
+    .populate('user', 'name email')
+    .sort({ createdAt: -1 });
+  res.json({ success: true, bookings });
+});
+
 export {
   createBooking,
   getMyBookings,
   getBookingById,
   updatePaymentStatus,
   cancelBooking,
+  verifyTicket,
+  checkInTicket,
+  getAllBookingsForEmployee,
 };

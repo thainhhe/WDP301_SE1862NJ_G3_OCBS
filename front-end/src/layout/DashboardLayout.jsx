@@ -3,6 +3,8 @@ import { Outlet } from 'react-router-dom';
 import { Box, useTheme, useMediaQuery, CssBaseline } from '@mui/material';
 import Topbar from '@components/dashboard/Topbar';
 import Sidebar from '@components/dashboard/Sidebar';
+import EmployeeSidebar from '@components/dashboard/EmployeeSidebar';
+import { useAuth } from '../context/AuthContext';
 
 const sidebarWidth = 260;
 
@@ -10,6 +12,7 @@ const DashboardLayout = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);
+    const { user } = useAuth();
 
     const handleToggleSidebar = () => {
         setSidebarOpen(!isSidebarOpen);
@@ -26,13 +29,22 @@ const DashboardLayout = () => {
                 sidebarWidth={sidebarWidth}
             />
 
-            {/* Sidebar không thay đổi */}
-            <Sidebar
-                onToggleSidebar={handleToggleSidebar}
-                isSidebarOpen={isSidebarOpen}
-                sidebarWidth={sidebarWidth}
-                isMobile={isMobile}
-            />
+            {/* Sidebar: employee dùng EmployeeSidebar, còn lại dùng Sidebar */}
+            {user?.role === 'employee' ? (
+                <EmployeeSidebar
+                    onToggleSidebar={handleToggleSidebar}
+                    isSidebarOpen={isSidebarOpen}
+                    sidebarWidth={sidebarWidth}
+                    isMobile={isMobile}
+                />
+            ) : (
+                <Sidebar
+                    onToggleSidebar={handleToggleSidebar}
+                    isSidebarOpen={isSidebarOpen}
+                    sidebarWidth={sidebarWidth}
+                    isMobile={isMobile}
+                />
+            )}
 
             {/* Main Content Area - SỬA ĐỔI CHÍNH Ở ĐÂY */}
             <Box

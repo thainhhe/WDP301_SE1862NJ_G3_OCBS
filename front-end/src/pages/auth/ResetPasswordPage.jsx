@@ -37,31 +37,28 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-400 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-lg w-full bg-white bg-opacity-95 rounded-3xl shadow-2xl p-10 space-y-8">
+        <div className="text-center">
+          <h2 className="text-4xl font-extrabold text-gray-900 mb-2">Đặt lại mật khẩu</h2>
+          <p className="text-gray-500 mb-4">Nhập mật khẩu mới cho tài khoản của bạn.</p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {(error || passwordError) && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error || passwordError}</div>
+            <div className="rounded-md bg-red-100 p-4 border border-red-300">
+              <div className="text-sm text-red-700 font-medium">{error || passwordError}</div>
             </div>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="grid grid-cols-1 gap-5">
             <div>
-              <label htmlFor="password" className="sr-only">
-                New Password
-              </label>
+              <label htmlFor="password" className="block text-gray-700 font-semibold mb-1">Mật khẩu mới</label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="New Password"
+                className="block w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition"
+                placeholder="Nhập mật khẩu mới"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -70,16 +67,14 @@ const ResetPasswordPage = () => {
               />
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm New Password
-              </label>
+              <label htmlFor="confirmPassword" className="block text-gray-700 font-semibold mb-1">Nhập lại mật khẩu mới</label>
               <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm New Password"
+                className="block w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition"
+                placeholder="Nhập lại mật khẩu mới"
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
@@ -88,15 +83,12 @@ const ResetPasswordPage = () => {
               />
             </div>
           </div>
-
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Reset Password
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full py-3 mt-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-lg shadow-lg hover:from-purple-600 hover:to-indigo-600 transition"
+          >
+            Đặt lại mật khẩu
+          </button>
         </form>
       </div>
     </div>
