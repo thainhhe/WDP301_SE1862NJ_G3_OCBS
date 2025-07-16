@@ -1,68 +1,103 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Building, MapPin, AlertCircle, X, Clock, Phone, Mail } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, X, Map, Building, MapPin, Phone, Clock, Theater, Loader2 } from "lucide-react"
+import MapSelector from "./MapSelector"
+import TheaterSelector from "./TheaterSelector"
 
 const BranchForm = ({ branch, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         name: "",
-        location: { address: "", city: "" },
-        contact: { phone: "", email: "" },
-        operatingHours: { open: "09:00", close: "23:00" },
+        location: {
+            address: "",
+            city: "",
+            province: "",
+            coordinates: {
+                latitude: 10.8231,
+                longitude: 106.6297,
+            },
+        },
+        contact: {
+            phone: "",
+            email: "",
+        },
+        operatingHours: {
+            open: "09:00",
+            close: "23:00",
+        },
         facilities: [],
+        theaters: [],
         image: "",
         isActive: true,
     })
+
     const [newFacility, setNewFacility] = useState("")
+    const [showMap, setShowMap] = useState(false)
     const [errors, setErrors] = useState({})
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         if (branch) {
+            console.log("Editing branch:", branch)
             setFormData({
                 name: branch.name || "",
-                location: branch.location || { address: "", city: "" },
-                contact: branch.contact || { phone: "", email: "" },
-                operatingHours: branch.operatingHours || {
-                    open: "09:00",
-                    close: "23:00",
+                location: {
+                    address: branch.location?.address || "",
+                    city: branch.location?.city || "",
+                    province: branch.location?.province || "",
+                    coordinates: {
+                        latitude: branch.location?.coordinates?.latitude || 10.8231,
+                        longitude: branch.location?.coordinates?.longitude || 106.6297,
+                    },
+                },
+                contact: {
+                    phone: branch.contact?.phone || "",
+                    email: branch.contact?.email || "",
+                },
+                operatingHours: {
+                    open: branch.operatingHours?.open || "09:00",
+                    close: branch.operatingHours?.close || "23:00",
                 },
                 facilities: branch.facilities || [],
+                theaters: branch.theaters || [],
                 image: branch.image || "",
                 isActive: branch.isActive !== undefined ? branch.isActive : true,
             })
-        } else {
-            setFormData({
-                name: "",
-                location: { address: "", city: "" },
-                contact: { phone: "", email: "" },
-                operatingHours: { open: "09:00", close: "23:00" },
-                facilities: [],
-                image: "",
-                isActive: true,
-            })
         }
-        setErrors({})
     }, [branch])
 
     const handleChange = (e) => {
-        const { name, value } = e.target
-        if (name.includes(".")) {
-            const [parent, child] = name.split(".")
+        const { name, value, type, checked } = e.target
+        const keys = name.split(".")
+
+        if (keys.length === 1) {
             setFormData((prev) => ({
                 ...prev,
-                [parent]: {
-                    ...prev[parent],
-                    [child]: value,
+                [name]: type === "checkbox" ? checked : value,
+            }))
+        } else if (keys.length === 2) {
+            setFormData((prev) => ({
+                ...prev,
+                [keys[0]]: {
+                    ...prev[keys[0]],
+                    [keys[1]]: value,
                 },
             }))
-        } else {
-            setFormData((prev) => ({ ...prev, [name]: value }))
+        } else if (keys.length === 3) {
+            setFormData((prev) => ({
+                ...prev,
+                [keys[0]]: {
+                    ...prev[keys[0]],
+                    [keys[1]]: {
+                        ...prev[keys[0]][keys[1]],
+                        [keys[2]]: Number.parseFloat(value) || value,
+                    },
+                },
+            }))
         }
 
         // Clear error when user starts typing
@@ -71,11 +106,7 @@ const BranchForm = ({ branch, onSubmit, onCancel }) => {
         }
     }
 
-    const handleCheckboxChange = (checked) => {
-        setFormData((prev) => ({ ...prev, isActive: checked }))
-    }
-
-    const handleAddFacility = () => {
+    const addFacility = () => {
         if (newFacility.trim() && !formData.facilities.includes(newFacility.trim())) {
             setFormData((prev) => ({
                 ...prev,
@@ -85,39 +116,68 @@ const BranchForm = ({ branch, onSubmit, onCancel }) => {
         }
     }
 
-    const handleRemoveFacility = (facilityToRemove) => {
+    const removeFacility = (facilityToRemove) => {
         setFormData((prev) => ({
             ...prev,
-            facilities: prev.facilities.filter((f) => f !== facilityToRemove),
+            facilities: prev.facilities.filter((facility) => facility !== facilityToRemove),
+        }))
+    }
+
+    const handleLocationSelect = (locationData) => {
+        console.log("Location selected:", locationData)
+
+        // Auto-fill location fields from map selection
+        setFormData((prev) => ({
+            ...prev,
+            location: {
+                ...prev.location,
+                coordinates: {
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude,
+                },
+                // Auto-fill address, city, and province if available
+                address: locationData.address || prev.location.address,
+                city: locationData.city || prev.location.city,
+                province: locationData.province || prev.location.province,
+            },
+        }))
+
+        // Clear related errors
+        setErrors((prev) => {
+            const newErrors = { ...prev }
+            delete newErrors.address
+            delete newErrors.city
+            delete newErrors.province
+            delete newErrors.latitude
+            delete newErrors.longitude
+            return newErrors
+        })
+    }
+
+    const handleTheatersChange = (theaters) => {
+        console.log("Theaters changed:", theaters)
+        setFormData((prev) => ({
+            ...prev,
+            theaters,
         }))
     }
 
     const validateForm = () => {
         const newErrors = {}
 
-        if (!formData.name.trim()) {
-            newErrors.name = "Branch name is required"
-        } else if (formData.name.trim().length < 2) {
-            newErrors.name = "Branch name must be at least 2 characters"
-        }
+        if (!formData.name.trim()) newErrors.name = "Branch name is required"
+        if (!formData.location.address.trim()) newErrors.address = "Address is required"
+        if (!formData.location.city.trim()) newErrors.city = "City is required"
+        if (!formData.location.province.trim()) newErrors.province = "Province is required"
+        if (!formData.contact.phone.trim()) newErrors.phone = "Phone is required"
+        if (!formData.contact.email.trim()) newErrors.email = "Email is required"
+        else if (!/^\S+@\S+\.\S+$/.test(formData.contact.email)) newErrors.email = "Invalid email format"
 
-        if (!formData.location.city.trim()) {
-            newErrors["location.city"] = "City is required"
-        }
-
-        if (!formData.location.address.trim()) {
-            newErrors["location.address"] = "Address is required"
-        }
-
-        if (!formData.contact.phone.trim()) {
-            newErrors["contact.phone"] = "Phone is required"
-        }
-
-        if (!formData.contact.email.trim()) {
-            newErrors["contact.email"] = "Email is required"
-        } else if (!/^\S+@\S+\.\S+$/.test(formData.contact.email)) {
-            newErrors["contact.email"] = "Invalid email format"
-        }
+        // Validate coordinates
+        const lat = formData.location.coordinates.latitude
+        const lng = formData.location.coordinates.longitude
+        if (lat < -90 || lat > 90) newErrors.latitude = "Latitude must be between -90 and 90"
+        if (lng < -180 || lng > 180) newErrors.longitude = "Longitude must be between -180 and 180"
 
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
@@ -129,251 +189,319 @@ const BranchForm = ({ branch, onSubmit, onCancel }) => {
 
         setLoading(true)
         try {
+            console.log("Submitting form data:", formData)
             await onSubmit(formData)
-        } catch (err) {
-            console.error("Form submission error:", err)
+        } catch (error) {
+            console.error("Form submission error:", error)
         } finally {
             setLoading(false)
         }
     }
 
+    if (showMap) {
+        return (
+            <MapSelector
+                latitude={formData.location.coordinates.latitude}
+                longitude={formData.location.coordinates.longitude}
+                onLocationSelect={handleLocationSelect}
+                onClose={() => setShowMap(false)}
+            />
+        )
+    }
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Branch Name */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                    Branch Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Enter branch name"
-                        className={`pl-10 ${errors.name ? "border-red-500 focus:border-red-500" : ""}`}
-                    />
-                </div>
-                {errors.name && (
-                    <div className="flex items-center text-red-600 text-sm">
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.name}
-                    </div>
-                )}
-            </div>
-
-            {/* Location */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        City <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            {/* Basic Information */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5" />
+                        Basic Information
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Branch Name <span className="text-red-500">*</span>
+                        </label>
                         <Input
-                            type="text"
-                            name="location.city"
-                            value={formData.location.city}
+                            name="name"
+                            value={formData.name}
                             onChange={handleChange}
-                            placeholder="Enter city"
-                            className={`pl-10 ${errors["location.city"] ? "border-red-500 focus:border-red-500" : ""}`}
+                            placeholder="Enter branch name (e.g., CGV Aeon Mall Bình Tân)"
+                            className={errors.name ? "border-red-500" : ""}
+                        />
+                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Image URL</label>
+                        <Input
+                            name="image"
+                            value={formData.image}
+                            onChange={handleChange}
+                            placeholder="Enter image URL (optional)"
                         />
                     </div>
-                    {errors["location.city"] && (
-                        <div className="flex items-center text-red-600 text-sm">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors["location.city"]}
+
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            name="isActive"
+                            checked={formData.isActive}
+                            onChange={handleChange}
+                            className="rounded"
+                        />
+                        <label className="text-sm font-medium">Active Branch</label>
+                        <span className="text-xs text-gray-500">(Inactive branches won't appear in customer searches)</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Location Information */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5" />
+                            Location Information
                         </div>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Address <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                        type="text"
-                        name="location.address"
-                        value={formData.location.address}
-                        onChange={handleChange}
-                        placeholder="Enter address"
-                        className={errors["location.address"] ? "border-red-500 focus:border-red-500" : ""}
-                    />
-                    {errors["location.address"] && (
-                        <div className="flex items-center text-red-600 text-sm">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors["location.address"]}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowMap(true)}
+                            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                        >
+                            <Map className="h-4 w-4" />
+                            Select on Map
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Address <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                            name="location.address"
+                            value={formData.location.address}
+                            onChange={handleChange}
+                            placeholder="Enter full address (will be auto-filled when selecting on map)"
+                            className={errors.address ? "border-red-500" : ""}
+                        />
+                        {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                City <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="location.city"
+                                value={formData.location.city}
+                                onChange={handleChange}
+                                placeholder="Enter city (auto-filled from map)"
+                                className={errors.city ? "border-red-500" : ""}
+                            />
+                            {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                         </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Contact */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Phone <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                            type="text"
-                            name="contact.phone"
-                            value={formData.contact.phone}
-                            onChange={handleChange}
-                            placeholder="Enter phone number"
-                            className={`pl-10 ${errors["contact.phone"] ? "border-red-500 focus:border-red-500" : ""}`}
-                        />
-                    </div>
-                    {errors["contact.phone"] && (
-                        <div className="flex items-center text-red-600 text-sm">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors["contact.phone"]}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Province <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="location.province"
+                                value={formData.location.province}
+                                onChange={handleChange}
+                                placeholder="Enter province (auto-filled from map)"
+                                className={errors.province ? "border-red-500" : ""}
+                            />
+                            {errors.province && <p className="text-red-500 text-sm mt-1">{errors.province}</p>}
                         </div>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Email <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                            type="email"
-                            name="contact.email"
-                            value={formData.contact.email}
-                            onChange={handleChange}
-                            placeholder="Enter email address"
-                            className={`pl-10 ${errors["contact.email"] ? "border-red-500 focus:border-red-500" : ""}`}
-                        />
                     </div>
-                    {errors["contact.email"] && (
-                        <div className="flex items-center text-red-600 text-sm">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors["contact.email"]}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Latitude <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="location.coordinates.latitude"
+                                type="number"
+                                step="any"
+                                value={formData.location.coordinates.latitude}
+                                onChange={handleChange}
+                                placeholder="Auto-filled from map"
+                                className={errors.latitude ? "border-red-500" : ""}
+                            />
+                            {errors.latitude && <p className="text-red-500 text-sm mt-1">{errors.latitude}</p>}
                         </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Operating Hours */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Opening Time</label>
-                    <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                            type="time"
-                            name="operatingHours.open"
-                            value={formData.operatingHours.open}
-                            onChange={handleChange}
-                            className="pl-10"
-                        />
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Longitude <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="location.coordinates.longitude"
+                                type="number"
+                                step="any"
+                                value={formData.location.coordinates.longitude}
+                                onChange={handleChange}
+                                placeholder="Auto-filled from map"
+                                className={errors.longitude ? "border-red-500" : ""}
+                            />
+                            {errors.longitude && <p className="text-red-500 text-sm mt-1">{errors.longitude}</p>}
+                        </div>
                     </div>
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Closing Time</label>
-                    <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                            type="time"
-                            name="operatingHours.close"
-                            value={formData.operatingHours.close}
-                            onChange={handleChange}
-                            className="pl-10"
-                        />
+
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                            💡 <strong>Tip:</strong> Click "Select on Map" to automatically fill address, city, province, and
+                            coordinates by selecting a location on the map.
+                        </p>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
-            {/* Facilities */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Facilities</label>
-                <div className="flex space-x-2">
-                    <Input
-                        type="text"
-                        value={newFacility}
-                        onChange={(e) => setNewFacility(e.target.value)}
-                        placeholder="Add facility..."
-                        className="flex-grow"
-                        onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault()
-                                handleAddFacility()
-                            }
-                        }}
-                    />
-                    <Button type="button" onClick={handleAddFacility} variant="outline" size="sm">
-                        Add
-                    </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.facilities.map((facility, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            {facility}
-                            <button
-                                type="button"
-                                onClick={() => handleRemoveFacility(facility)}
-                                className="ml-1 text-red-400 hover:text-red-600"
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </Badge>
-                    ))}
-                </div>
-            </div>
-
-            {/* Image URL */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Image URL</label>
-                <Input
-                    type="text"
-                    name="image"
-                    value={formData.image}
-                    onChange={handleChange}
-                    placeholder="e.g., /uploads/branches/branch-image.jpg"
-                />
-            </div>
-
-            {/* Active Status */}
-            <div className="flex items-center space-x-2">
-                <Checkbox id="isActive" checked={formData.isActive} onCheckedChange={handleCheckboxChange} />
-                <label
-                    htmlFor="isActive"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    Active
-                </label>
-            </div>
-
-            {/* Information Card */}
-            <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-4">
-                    <div className="flex items-start">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
-                        <div className="text-sm text-blue-800">
-                            <p className="font-medium mb-1">Important Notes:</p>
-                            <ul className="list-disc list-inside space-y-1 text-xs">
-                                <li>Branch information will be displayed to customers</li>
-                                <li>Operating hours should reflect actual business hours</li>
-                                <li>Facilities help customers choose the right location</li>
-                                <li>Inactive branches won't appear in customer searches</li>
-                            </ul>
+            {/* Contact Information */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Phone className="h-5 w-5" />
+                        Contact Information
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Phone <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="contact.phone"
+                                value={formData.contact.phone}
+                                onChange={handleChange}
+                                placeholder="Enter phone number (e.g., 02812345678)"
+                                className={errors.phone ? "border-red-500" : ""}
+                            />
+                            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Email <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                name="contact.email"
+                                type="email"
+                                value={formData.contact.email}
+                                onChange={handleChange}
+                                placeholder="Enter email address"
+                                className={errors.email ? "border-red-500" : ""}
+                            />
+                            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
+            {/* Operating Hours */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Operating Hours
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Opening Time</label>
+                            <Input
+                                name="operatingHours.open"
+                                type="time"
+                                value={formData.operatingHours.open}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Closing Time</label>
+                            <Input
+                                name="operatingHours.close"
+                                type="time"
+                                value={formData.operatingHours.close}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Theater Management */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Theater className="h-5 w-5" />
+                        Theater Management
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <TheaterSelector
+                        selectedTheaters={formData.theaters}
+                        onTheatersChange={handleTheatersChange}
+                        branchId={branch?._id}
+                    />
+                </CardContent>
+            </Card>
+
+            {/* Facilities */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Facilities & Amenities</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input
+                            value={newFacility}
+                            onChange={(e) => setNewFacility(e.target.value)}
+                            placeholder="Add facility (e.g., Parking, Food court, IMAX)"
+                            onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addFacility())}
+                        />
+                        <Button type="button" onClick={addFacility} size="sm">
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        {formData.facilities.map((facility, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+                                {facility}
+                                <button type="button" onClick={() => removeFacility(facility)} className="ml-1 hover:text-red-500">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        ))}
+                    </div>
+
+                    {formData.facilities.length === 0 && (
+                        <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
+                            <p className="text-sm">No facilities added yet</p>
+                            <p className="text-xs">Add facilities like parking, food court, accessibility features, etc.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Form Actions */}
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+            <div className="flex gap-4 justify-end pt-6 border-t">
+                <Button type="button" variant="outline" onClick={onCancel} disabled={loading} size="lg">
                     Cancel
                 </Button>
-                <Button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700 text-white min-w-[120px]">
+                <Button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700" size="lg">
                     {loading ? (
-                        <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Saving...
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Saving Branch...
                         </div>
                     ) : (
                         <>{branch ? "Update Branch" : "Create Branch"}</>

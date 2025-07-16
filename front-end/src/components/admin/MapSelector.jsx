@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, Search, Navigation, X } from "lucide-react"
+import { MapPin, Search, Navigation, X, Loader2 } from "lucide-react"
 
 const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelect, onClose }) => {
     const mapRef = useRef(null)
@@ -15,60 +15,84 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
         latitude,
         longitude,
         address: "",
+        city: "",
+        province: "",
+        country: "",
     })
     const [loading, setLoading] = useState(false)
+    const [mapLoading, setMapLoading] = useState(true)
 
     useEffect(() => {
         // Initialize Google Maps
         const initMap = () => {
             if (!window.google) {
                 console.error("Google Maps API not loaded")
+                setMapLoading(false)
                 return
             }
 
-            const mapInstance = new window.google.maps.Map(mapRef.current, {
-                center: { lat: latitude, lng: longitude },
-                zoom: 15,
-                mapTypeControl: true,
-                streetViewControl: true,
-                fullscreenControl: true,
-            })
+            try {
+                const mapInstance = new window.google.maps.Map(mapRef.current, {
+                    center: { lat: latitude, lng: longitude },
+                    zoom: 15,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true,
+                    zoomControl: true,
+                    mapTypeControlOptions: {
+                        style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                        position: window.google.maps.ControlPosition.TOP_CENTER,
+                    },
+                    zoomControlOptions: {
+                        position: window.google.maps.ControlPosition.RIGHT_CENTER,
+                    },
+                })
 
-            const markerInstance = new window.google.maps.Marker({
-                position: { lat: latitude, lng: longitude },
-                map: mapInstance,
-                draggable: true,
-                title: "Branch Location",
-            })
+                const markerInstance = new window.google.maps.Marker({
+                    position: { lat: latitude, lng: longitude },
+                    map: mapInstance,
+                    draggable: true,
+                    title: "Branch Location",
+                    animation: window.google.maps.Animation.DROP,
+                })
 
-            // Handle map click
-            mapInstance.addListener("click", (event) => {
-                const lat = event.latLng.lat()
-                const lng = event.latLng.lng()
-                updateLocation(lat, lng, markerInstance, mapInstance)
-            })
+                // Handle map click
+                mapInstance.addListener("click", (event) => {
+                    const lat = event.latLng.lat()
+                    const lng = event.latLng.lng()
+                    updateLocation(lat, lng, markerInstance, mapInstance)
+                })
 
-            // Handle marker drag
-            markerInstance.addListener("dragend", (event) => {
-                const lat = event.latLng.lat()
-                const lng = event.latLng.lng()
-                updateLocation(lat, lng, markerInstance, mapInstance)
-            })
+                // Handle marker drag
+                markerInstance.addListener("dragend", (event) => {
+                    const lat = event.latLng.lat()
+                    const lng = event.latLng.lng()
+                    updateLocation(lat, lng, markerInstance, mapInstance)
+                })
 
-            setMap(mapInstance)
-            setMarker(markerInstance)
+                setMap(mapInstance)
+                setMarker(markerInstance)
+                setMapLoading(false)
 
-            // Get initial address
-            reverseGeocode(latitude, longitude)
+                // Get initial address
+                reverseGeocode(latitude, longitude)
+            } catch (error) {
+                console.error("Error initializing map:", error)
+                setMapLoading(false)
+            }
         }
 
         // Load Google Maps API if not already loaded
         if (!window.google) {
             const script = document.createElement("script")
-            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBcne-Uj1lOewST8oRzcTRqkvX_tNSnKNs&libraries=places`
+            script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places`
             script.async = true
             script.defer = true
             script.onload = initMap
+            script.onerror = () => {
+                console.error("Failed to load Google Maps API")
+                setMapLoading(false)
+            }
             document.head.appendChild(script)
         } else {
             initMap()
@@ -83,7 +107,7 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
 
         markerInstance.setPosition({ lat, lng })
         mapInstance.panTo({ lat, lng })
-        setSelectedLocation(newLocation)
+        setSelectedLocation((prev) => ({ ...prev, ...newLocation }))
         reverseGeocode(lat, lng)
     }
 
@@ -97,10 +121,32 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
             })
 
             if (response.results[0]) {
-                const address = response.results[0].formatted_address
+                const result = response.results[0]
+                const addressComponents = result.address_components
+
+                // Extract address components
+                const address = result.formatted_address
+                let city = ""
+                let province = ""
+                let country = ""
+
+                addressComponents.forEach((component) => {
+                    const types = component.types
+                    if (types.includes("locality") || types.includes("administrative_area_level_2")) {
+                        city = component.long_name
+                    } else if (types.includes("administrative_area_level_1")) {
+                        province = component.long_name
+                    } else if (types.includes("country")) {
+                        country = component.long_name
+                    }
+                })
+
                 setSelectedLocation((prev) => ({
                     ...prev,
                     address,
+                    city,
+                    province,
+                    country,
                 }))
             }
         } catch (error) {
@@ -126,9 +172,12 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
 
                 updateLocation(lat, lng, marker, map)
                 map.setZoom(16)
+            } else {
+                alert("Location not found. Please try a different search term.")
             }
         } catch (error) {
             console.error("Geocoding failed:", error)
+            alert("Search failed. Please try again.")
         } finally {
             setLoading(false)
         }
@@ -151,7 +200,13 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
             },
             (error) => {
                 console.error("Error getting current location:", error)
+                alert("Unable to get your current location. Please ensure location services are enabled.")
                 setLoading(false)
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
             },
         )
     }
@@ -162,63 +217,100 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
     }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-4xl h-[80vh] m-4">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-6xl h-[90vh] flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <MapPin className="h-6 w-6 text-red-600" />
                         Select Branch Location
                     </CardTitle>
                     <Button variant="ghost" size="sm" onClick={onClose}>
-                        <X className="h-4 w-4" />
+                        <X className="h-5 w-5" />
                     </Button>
                 </CardHeader>
-                <CardContent className="flex flex-col h-full">
+                <CardContent className="flex-1 flex flex-col space-y-4">
                     {/* Search Controls */}
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex gap-3">
                         <div className="flex-1 flex gap-2">
-                            <Input
-                                placeholder="Search for an address..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && searchLocation()}
-                            />
-                            <Button onClick={searchLocation} disabled={loading} size="sm">
-                                <Search className="h-4 w-4" />
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                <Input
+                                    placeholder="Search for an address (e.g., 'Ho Chi Minh City', 'District 1')"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyPress={(e) => e.key === "Enter" && !loading && searchLocation()}
+                                    className="pl-10"
+                                />
+                            </div>
+                            <Button onClick={searchLocation} disabled={loading} size="default">
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                Search
                             </Button>
                         </div>
-                        <Button onClick={getCurrentLocation} disabled={loading} variant="outline" size="sm">
-                            <Navigation className="h-4 w-4 mr-2" />
+                        <Button onClick={getCurrentLocation} disabled={loading} variant="outline" size="default">
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
                             Current Location
                         </Button>
                     </div>
 
                     {/* Map Container */}
-                    <div ref={mapRef} className="flex-1 rounded-lg border" style={{ minHeight: "400px" }} />
+                    <div className="flex-1 relative rounded-lg border overflow-hidden" style={{ minHeight: "500px" }}>
+                        {mapLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                                <div className="text-center">
+                                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-red-600" />
+                                    <p className="text-gray-600">Loading map...</p>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={mapRef} className="w-full h-full" />
+                    </div>
 
-                    {/* Location Info */}
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                    {/* Location Information */}
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <h3 className="font-medium text-gray-900">Selected Location</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <span className="font-medium">Latitude:</span> {selectedLocation.latitude?.toFixed(6)}
+                                <span className="font-medium text-gray-700">Coordinates:</span>
+                                <p className="text-gray-600">
+                                    {selectedLocation.latitude?.toFixed(6)}, {selectedLocation.longitude?.toFixed(6)}
+                                </p>
                             </div>
                             <div>
-                                <span className="font-medium">Longitude:</span> {selectedLocation.longitude?.toFixed(6)}
+                                <span className="font-medium text-gray-700">City:</span>
+                                <p className="text-gray-600">{selectedLocation.city || "Not available"}</p>
+                            </div>
+                            <div>
+                                <span className="font-medium text-gray-700">Province:</span>
+                                <p className="text-gray-600">{selectedLocation.province || "Not available"}</p>
+                            </div>
+                            <div>
+                                <span className="font-medium text-gray-700">Country:</span>
+                                <p className="text-gray-600">{selectedLocation.country || "Not available"}</p>
                             </div>
                         </div>
                         {selectedLocation.address && (
-                            <div className="mt-2 text-sm">
-                                <span className="font-medium">Address:</span> {selectedLocation.address}
+                            <div className="text-sm">
+                                <span className="font-medium text-gray-700">Full Address:</span>
+                                <p className="text-gray-600 mt-1">{selectedLocation.address}</p>
                             </div>
                         )}
                     </div>
 
+                    {/* Instructions */}
+                    <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                            <strong>Instructions:</strong> Click anywhere on the map or drag the red marker to select a location. You
+                            can also search for a specific address or use your current location.
+                        </p>
+                    </div>
+
                     {/* Action Buttons */}
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={onClose}>
+                    <div className="flex justify-end gap-3 pt-2 border-t">
+                        <Button variant="outline" onClick={onClose} size="lg">
                             Cancel
                         </Button>
-                        <Button onClick={handleConfirm} className="bg-red-600 hover:bg-red-700">
+                        <Button onClick={handleConfirm} className="bg-red-600 hover:bg-red-700" size="lg">
                             Confirm Location
                         </Button>
                     </div>

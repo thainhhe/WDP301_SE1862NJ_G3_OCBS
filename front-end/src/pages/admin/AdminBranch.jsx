@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, Edit, Trash2, MapPin, Clock, Building, AlertCircle, Phone, Mail, Eye } from "lucide-react"
+import { Plus, Edit, Trash2, MapPin, Clock, Building, AlertCircle, Phone, Mail, Eye, Theater } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,9 +20,11 @@ import { DataTable } from "@/components/ui/data-table"
 import BranchForm from "@/components/admin/BranchForm"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import { branchService } from "../../services/branchService"
+import { theaterService } from "../../services/theaterService"
 
 const AdminBranches = () => {
   const [branches, setBranches] = useState([])
+  const [theaters, setTheaters] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showFormModal, setShowFormModal] = useState(false)
@@ -43,13 +45,28 @@ const AdminBranches = () => {
     setLoading(true)
     setError(null)
     try {
+      // Get all branches without backend filtering
       const params = {
         name: filters.search || undefined,
         location_city: filters.city !== "all" ? filters.city : undefined,
-        isActive: filters.isActive !== "all" ? filters.isActive === "true" : undefined,
       }
+
+      console.log("Fetching branches with params:", params)
       const data = await branchService.getBranches(params)
-      setBranches(data)
+      console.log("Received branches data:", data)
+
+      // Apply client-side filtering for isActive
+      let filteredData = data
+      if (filters.isActive !== "all") {
+        const isActiveFilter = filters.isActive === "true"
+        filteredData = data.filter((branch) => {
+          console.log(`Branch ${branch.name}: isActive = ${branch.isActive}, filter = ${isActiveFilter}`)
+          return branch.isActive === isActiveFilter
+        })
+      }
+
+      console.log("Filtered branches:", filteredData)
+      setBranches(filteredData)
 
       // Extract unique cities for filter dropdown
       const cities = [...new Set(data.map((b) => b.location?.city).filter(Boolean))]
@@ -62,9 +79,40 @@ const AdminBranches = () => {
     }
   }, [filters])
 
+  const fetchTheaters = useCallback(async () => {
+    try {
+      const data = await theaterService.getTheaters()
+      console.log("Fetched theaters for branch display:", data)
+      setTheaters(data)
+    } catch (err) {
+      console.error("Failed to fetch theaters:", err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchBranches()
-  }, [fetchBranches])
+    fetchTheaters()
+  }, [fetchBranches, fetchTheaters])
+
+  const getTheaterNames = (theaterIds) => {
+    if (!theaterIds || theaterIds.length === 0) {
+      console.log("No theater IDs provided")
+      return []
+    }
+
+    console.log("Getting theater names for IDs:", theaterIds)
+    console.log("Available theaters:", theaters)
+
+    const matchedTheaters = theaters.filter((theater) => theaterIds.includes(theater._id))
+    console.log("Matched theaters:", matchedTheaters)
+
+    return matchedTheaters.map((theater) => ({
+      id: theater._id,
+      name: theater.name,
+      type: theater.type,
+      capacity: theater.capacity,
+    }))
+  }
 
   const handleCreateBranch = () => {
     setEditingBranch(null)
@@ -82,6 +130,7 @@ const AdminBranches = () => {
   }
 
   const handleDeleteBranch = (branch) => {
+    console.log("Delete button clicked for branch:", branch.name)
     setBranchToDelete(branch)
     setShowDeleteDialog(true)
   }
@@ -104,6 +153,7 @@ const AdminBranches = () => {
   const confirmDeleteBranch = async () => {
     if (!branchToDelete) return
     try {
+      console.log("Deleting branch:", branchToDelete.name)
       await branchService.deleteBranch(branchToDelete._id)
       setShowDeleteDialog(false)
       setBranchToDelete(null)
@@ -111,7 +161,15 @@ const AdminBranches = () => {
     } catch (err) {
       console.error("Error deleting branch:", err)
       setError(`Failed to delete branch: ${err.response?.data?.message || err.message}`)
+      setShowDeleteDialog(false)
+      setBranchToDelete(null)
     }
+  }
+
+  const handleCancelDelete = () => {
+    console.log("Delete cancelled")
+    setShowDeleteDialog(false)
+    setBranchToDelete(null)
   }
 
   const columns = [
@@ -130,7 +188,46 @@ const AdminBranches = () => {
               <MapPin className="w-4 h-4 mr-2 text-gray-400" />
               <div>
                 <div className="font-medium">{location?.city || "N/A"}</div>
-                <div className="text-sm text-gray-500">{location?.address || "No address"}</div>
+                <div className="text-sm text-gray-500 max-w-[200px] truncate">{location?.address || "No address"}</div>
+              </div>
+            </div>
+        )
+      },
+    },
+    {
+      accessorKey: "theaters",
+      header: "Theaters",
+      cell: ({ row }) => {
+        const theaterIds = row.getValue("theaters") || []
+        const theaterDetails = getTheaterNames(theaterIds)
+
+        console.log("Rendering theaters for row:", { theaterIds, theaterDetails })
+
+        return (
+            <div className="flex items-center">
+              <Theater className="w-4 h-4 mr-2 text-gray-400" />
+              <div>
+                {theaterDetails.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {theaterDetails.slice(0, 2).map((theater, index) => (
+                          <Badge key={theater.id} variant="outline" className="text-xs">
+                            {theater.name}
+                          </Badge>
+                      ))}
+                      {theaterDetails.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{theaterDetails.length - 2} more
+                          </Badge>
+                      )}
+                    </div>
+                ) : (
+                    <span className="text-sm text-gray-500">No theaters</span>
+                )}
+                {theaterDetails.length > 0 && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {theaterDetails.length} theater{theaterDetails.length !== 1 ? "s" : ""}
+                    </div>
+                )}
               </div>
             </div>
         )
@@ -149,7 +246,7 @@ const AdminBranches = () => {
               </div>
               <div className="flex items-center text-sm">
                 <Mail className="w-3 h-3 mr-1 text-gray-400" />
-                {contact?.email || "N/A"}
+                <span className="max-w-[150px] truncate">{contact?.email || "N/A"}</span>
               </div>
             </div>
         )
@@ -217,7 +314,15 @@ const AdminBranches = () => {
               <Button variant="outline" size="sm" onClick={() => handleEditBranch(branch)}>
                 <Edit className="w-4 h-4" />
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDeleteBranch(branch)}>
+              <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDeleteBranch(branch)
+                  }}
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -319,7 +424,7 @@ const AdminBranches = () => {
 
         {/* Form Modal */}
         <Dialog open={showFormModal} onOpenChange={setShowFormModal}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingBranch ? "Edit Branch" : "Create New Branch"}</DialogTitle>
               <DialogDescription>
@@ -332,12 +437,12 @@ const AdminBranches = () => {
 
         {/* View Modal */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Branch Details</DialogTitle>
             </DialogHeader>
             {viewingBranch && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">Name</label>
@@ -362,10 +467,28 @@ const AdminBranches = () => {
                       <p>{viewingBranch.location?.city || "N/A"}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Address</label>
-                      <p>{viewingBranch.location?.address || "N/A"}</p>
+                      <label className="text-sm font-medium text-gray-500">Province</label>
+                      <p>{viewingBranch.location?.province || "N/A"}</p>
                     </div>
                   </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Address</label>
+                    <p>{viewingBranch.location?.address || "N/A"}</p>
+                  </div>
+
+                  {viewingBranch.location?.coordinates && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Latitude</label>
+                          <p>{viewingBranch.location.coordinates.latitude || "N/A"}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Longitude</label>
+                          <p>{viewingBranch.location.coordinates.longitude || "N/A"}</p>
+                        </div>
+                      </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -380,62 +503,78 @@ const AdminBranches = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Opening Time</label>
-                      <p>{viewingBranch.operatingHours?.open || "09:00"}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Closing Time</label>
-                      <p>{viewingBranch.operatingHours?.close || "23:00"}</p>
+                      <label className="text-sm font-medium text-gray-500">Opening Hours</label>
+                      <p>
+                        {viewingBranch.operatingHours?.open || "09:00"} - {viewingBranch.operatingHours?.close || "23:00"}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Assigned Theaters */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Assigned Theaters</label>
+                    <div className="mt-2">
+                      {viewingBranch.theaters && viewingBranch.theaters.length > 0 ? (
+                          <div className="space-y-2">
+                            {getTheaterNames(viewingBranch.theaters).map((theater) => (
+                                <div key={theater.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <Theater className="h-4 w-4 text-gray-500" />
+                                    <div>
+                                      <div className="font-medium">{theater.name}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {theater.type || "Standard"} • {theater.capacity || "N/A"} seats
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline">{theater.type || "Standard"}</Badge>
+                                </div>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
+                            <Theater className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                            <p className="text-sm">No theaters assigned</p>
+                          </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Facilities */}
                   <div>
                     <label className="text-sm font-medium text-gray-500">Facilities</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {viewingBranch.facilities?.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {viewingBranch.facilities && viewingBranch.facilities.length > 0 ? (
                           viewingBranch.facilities.map((facility, index) => (
                               <Badge key={index} variant="outline">
                                 {facility}
                               </Badge>
                           ))
                       ) : (
-                          <p className="text-gray-400">No facilities listed</p>
+                          <p className="text-gray-500">No facilities listed</p>
                       )}
                     </div>
                   </div>
-
-                  {viewingBranch.image && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Image</label>
-                        <img
-                            src={viewingBranch.image || "/placeholder.svg"}
-                            alt={viewingBranch.name}
-                            className="mt-1 w-full h-48 object-cover rounded-lg"
-                            onError={(e) => {
-                              e.target.style.display = "none"
-                            }}
-                        />
-                      </div>
-                  )}
                 </div>
             )}
             <DialogFooter>
-              <Button onClick={() => setShowViewModal(false)}>Close</Button>
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>
+                Close
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-            <ConfirmDialog
-                title="Delete Branch"
-                message={`Are you sure you want to delete the branch "${branchToDelete?.name}"? This action cannot be undone and may affect associated theaters and showtimes.`}
-                onConfirm={confirmDeleteBranch}
-                onCancel={() => setShowDeleteDialog(false)}
-                confirmText="Delete"
-                cancelText="Cancel"
-            />
-        )}
+        <ConfirmDialog
+            open={showDeleteDialog}
+            onClose={handleCancelDelete}
+            onConfirm={confirmDeleteBranch}
+            title="Delete Branch"
+            message={`Are you sure you want to delete "${branchToDelete?.name}"? This action cannot be undone.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+        />
       </div>
   )
 }
