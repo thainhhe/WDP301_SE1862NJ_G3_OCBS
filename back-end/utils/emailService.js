@@ -14,7 +14,7 @@ const sendEmail = async (options) => {
   // Define email options
   const mailOptions = {
     from: `${process.env.EMAIL_FROM} <${process.env.EMAIL_FROM}>`,
-    to: options.email,
+    to: options.to || options.email, // Ưu tiên 'to', fallback 'email' cho tương thích
     subject: options.subject,
     text: options.message,
     html: options.html,

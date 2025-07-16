@@ -266,6 +266,9 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
 
     // Gửi email xác nhận vé cho user
     if (booking.user && booking.user.email) {
+      // Tạo QR code buffer để đính kèm
+      const qrData = booking._id.toString();
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, { type: 'png', width: 300 });
       const emailHtml = `
         <h2>Chúc mừng bạn đã đặt vé thành công!</h2>
         <p><b>Phim:</b> ${booking.showtime.movie.title}</p>
@@ -273,14 +276,20 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
         <p><b>Rạp:</b> ${booking.showtime.branch?.name || ""} - ${booking.showtime.theater?.name || ""}</p>
         <p><b>Ghế:</b> ${booking.seats.map(s => s.row + s.number).join(", ")}</p>
         <p><b>Trạng thái:</b> Đã thanh toán</p>
-        <p><b>Mã QR:</b></p>
-        <img src="${booking.qrCode}" alt="QR Code" style="width:180px;height:180px;" />
+        <p><b>Mã QR:</b> <i>(Vui lòng mở file đính kèm để check-in tại rạp)</i></p>
       `;
       try {
         await sendEmail({
-          email: booking.user.email,
+          to: booking.user.email,
           subject: "Xác nhận đặt vé thành công",
           html: emailHtml,
+          attachments: [
+            {
+              filename: 'qrcode.png',
+              content: qrCodeBuffer,
+              contentType: 'image/png',
+            },
+          ],
         });
       } catch (err) {
         console.error("Gửi email xác nhận vé thất bại:", err);
@@ -380,6 +389,32 @@ const verifyTicket = asyncHandler(async (req, res) => {
     });
   if (!booking) {
     return res.status(404).json({ valid: false, message: "Vé không tồn tại!" });
+  }
+  // Kiểm tra hết hạn mã QR dựa trên thời gian suất chiếu
+  const now = new Date();
+  const showtime = booking.showtime;
+  let expired = false;
+  if (showtime) {
+    // Nếu có endTime thì dùng endTime, không thì dùng startTime
+    const endTime = showtime.endTime ? new Date(showtime.endTime) : new Date(showtime.startTime);
+    if (now > endTime) {
+      expired = true;
+    }
+  }
+  if (expired) {
+    return res.status(400).json({
+      valid: false,
+      message: "Mã QR đã hết hạn (suất chiếu đã kết thúc)!",
+      ticket: {
+        bookingId: booking._id,
+        movie: booking.showtime.movie.title,
+        showtime: booking.showtime.startTime,
+        theater: booking.showtime.theater.name,
+        branch: booking.showtime.branch.name,
+        seats: booking.seats.map(s => `${s.row}${s.number}`),
+        checkedIn: booking.checkedIn,
+      }
+    });
   }
   res.json({
     valid: true,
