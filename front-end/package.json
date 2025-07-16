@@ -28,6 +28,7 @@
     "lucide-react": "^0.515.0",
     "npm": "^11.4.2",
     "prop-types": "^15.8.1",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.59.0",

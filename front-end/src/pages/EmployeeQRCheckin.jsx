@@ -21,12 +21,26 @@ const EmployeeQRCheckin = () => {
           setTicketInfo(res.data.ticket);
           setOpenDialog(true);
         } else {
-          setTicketInfo(null);
-          setError(res.data.message || "Vé không hợp lệ!");
+          if (res.data.ticket) {
+            setTicketInfo(res.data.ticket);
+            setError(res.data.message || "Vé không hợp lệ!");
+            setOpenDialog(true);
+          } else {
+            setTicketInfo(null);
+            setError(res.data.message || "Vé không hợp lệ!");
+          }
         }
       } catch (err) {
-        setTicketInfo(null);
-        setError("Không thể xác thực vé!");
+        // Xử lý lỗi 400 từ backend (lấy thông tin từ error.response.data)
+        const data = err.response?.data;
+        if (data && data.ticket) {
+          setTicketInfo(data.ticket);
+          setError(data.message || "Vé không hợp lệ!");
+          setOpenDialog(true);
+        } else {
+          setTicketInfo(null);
+          setError(data?.message || "Không thể xác thực vé!");
+        }
       }
     }
   };
@@ -75,13 +89,15 @@ const EmployeeQRCheckin = () => {
               <div><b>Rạp:</b> {ticketInfo.branch} - {ticketInfo.theater}</div>
               <div><b>Ghế:</b> {ticketInfo.seats.join(", ")}</div>
               <div><b>Trạng thái:</b> {ticketInfo.checkedIn ? "Đã check-in" : "Chưa check-in"}</div>
-              {success && <div style={{ color: 'green', marginTop: 8 }}>{success}</div>}
+              {/* Nếu có lỗi (hết hạn, không hợp lệ,...) thì show màu đỏ */}
               {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
+              {success && <div style={{ color: 'green', marginTop: 8 }}>{success}</div>}
             </div>
           )}
         </DialogContent>
         <DialogActions>
-          {!ticketInfo?.checkedIn && (
+          {/* Nếu vé chưa check-in và không bị hết hạn thì mới cho check-in */}
+          {!ticketInfo?.checkedIn && !error && (
             <Button onClick={handleConfirmCheckin} variant="contained" color="primary">
               Xác nhận check-in
             </Button>

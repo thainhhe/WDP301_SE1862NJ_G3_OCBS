@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Thêm useNavigate
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // Thêm useNavigate
+import { useAuth } from "../../context/AuthContext";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, error, user } = useAuth();
   const navigate = useNavigate(); // Khởi tạo navigate
 
@@ -13,13 +13,14 @@ const LoginPage = () => {
     const success = await login(email, password); // Lấy kết quả true/false
     if (success) {
       // Lấy userInfo từ localStorage để đảm bảo dữ liệu mới nhất
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      if (userInfo && userInfo.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (userInfo && userInfo.role === 'employee') {
-        navigate('/admin/employee-dashboard');
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      console.log("User info:", userInfo);
+      if (userInfo && userInfo.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userInfo && userInfo.role === "employee") {
+        navigate("/admin/employee-dashboard");
       } else {
-        navigate('/');
+        navigate("/");
       }
     }
   };
@@ -28,8 +29,12 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-400 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg w-full bg-white bg-opacity-95 rounded-3xl shadow-2xl p-10 space-y-8">
         <div className="text-center">
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-2">Đăng nhập</h2>
-          <p className="text-gray-500 mb-4">Đăng nhập để đặt vé, quản lý tài khoản và nhận ưu đãi hấp dẫn!</p>
+          <h2 className="text-4xl font-extrabold text-gray-900 mb-2">
+            Đăng nhập
+          </h2>
+          <p className="text-gray-500 mb-4">
+            Đăng nhập để đặt vé, quản lý tài khoản và nhận ưu đãi hấp dẫn!
+          </p>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
@@ -39,7 +44,12 @@ const LoginPage = () => {
           )}
           <div className="grid grid-cols-1 gap-5">
             <div>
-              <label htmlFor="email-address" className="block text-gray-700 font-semibold mb-1">Email</label>
+              <label
+                htmlFor="email-address"
+                className="block text-gray-700 font-semibold mb-1"
+              >
+                Email
+              </label>
               <input
                 id="email-address"
                 name="email"
@@ -53,7 +63,12 @@ const LoginPage = () => {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-gray-700 font-semibold mb-1">Mật khẩu</label>
+              <label
+                htmlFor="password"
+                className="block text-gray-700 font-semibold mb-1"
+              >
+                Mật khẩu
+              </label>
               <input
                 id="password"
                 name="password"
@@ -85,7 +100,7 @@ const LoginPage = () => {
           </button>
           <div className="text-center mt-4">
             <span className="text-sm text-gray-600">
-              Chưa có tài khoản?{' '}
+              Chưa có tài khoản?{" "}
               <Link
                 to="/register"
                 className="font-medium text-indigo-600 hover:text-indigo-500"

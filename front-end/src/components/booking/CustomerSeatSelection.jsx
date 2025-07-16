@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +14,7 @@ import {
 } from "lucide-react";
 import { seatService } from "../../services/seatService";
 import socketService from "../../services/socketService";
+import { useAuth } from "../../context/AuthContext";
 
 const CustomerSeatSelection = ({
   showtimeId,
@@ -23,6 +22,7 @@ const CustomerSeatSelection = ({
   maxSeats = 8,
   onPriceChange,
 }) => {
+  const { user } = useAuth();
   const [seats, setSeats] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +167,42 @@ const CustomerSeatSelection = ({
       // Lấy trạng thái ghế mới nhất từ server
       const latestStatus = await seatService.getSeatAvailability(showtimeId);
       const currentSeat = latestStatus.find((s) => s._id === seat._id);
+
+      // Kiểm tra nếu ghế đang được giữ và không phải do chính người dùng này chọn
+      if (
+        currentSeat.availability?.status === "reserved" &&
+        !selectedSeats.some((s) => s._id === seat._id)
+      ) {
+        const expirationTime = new Date(
+          currentSeat.availability.reservationExpires
+        );
+        const remainingSecondsTotal = Math.round(
+          (expirationTime.getTime() - new Date().getTime()) / 1000
+        );
+
+        if (remainingSecondsTotal > 0) {
+          // Tính toán số phút và giây còn lại
+          const minutes = Math.floor(remainingSecondsTotal / 60);
+          const seconds = remainingSecondsTotal % 60;
+
+          // Tạo chuỗi thông báo mới
+          const timeString = `${
+            minutes > 0 ? `${minutes} phút ` : ""
+          }${seconds} giây`;
+          setError(
+            `Ghế ${seat.row}${seat.number} đang được giữ. Bạn có thể thử lại sau ${timeString}.`
+          );
+        } else {
+          setError(
+            `Ghế ${seat.row}${seat.number} đang được giữ. Vui lòng tải lại trang.`
+          );
+        }
+
+        // Tự động xóa thông báo sau 5 giây
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
       if (
         currentSeat.availability?.status !== "available" &&
         !selectedSeats.some((s) => s._id === seat._id)
@@ -203,15 +239,13 @@ const CustomerSeatSelection = ({
       setError(null);
       setSelectedSeats(newSelection);
 
+      // Phần còn lại của hàm giữ nguyên...
       try {
         if (newSelection.length > 0) {
-          // Gửi yêu cầu chọn ghế qua WebSocket
           socketService.selectSeats(
             showtimeId,
             newSelection.map((s) => s._id)
           );
-
-          // Chờ xác nhận từ WebSocket
           await new Promise((resolve, reject) => {
             socketService.on("seat-selection-success", () => resolve());
             socketService.on("seat-selection-failed", ({ message }) => {
@@ -220,15 +254,12 @@ const CustomerSeatSelection = ({
               reject(new Error(message));
             });
           });
-
-          // Đặt giữ ghế
           await seatService.reserveSeats(
             showtimeId,
             newSelection.map((s) => s._id),
-            10
+            user._id
           );
         } else if (selectedSeats.length > 0) {
-          // Lấy trạng thái mới nhất trước khi giải phóng
           const latestStatus = await seatService.getSeatAvailability(
             showtimeId
           );
@@ -243,8 +274,6 @@ const CustomerSeatSelection = ({
             socketService.releaseSeats(showtimeId, seatIdsToRelease);
           }
         }
-
-        // Cập nhật trạng thái ghế trên client
         setSeats(latestStatus);
       } catch (error) {
         setError(error.message || "Không thể xử lý ghế. Vui lòng thử lại.");
@@ -369,12 +398,6 @@ const CustomerSeatSelection = ({
 
   return (
     <div className="space-y-6">
-      {error && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">{error}</AlertDescription>
-        </Alert>
-      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Chú thích ghế</CardTitle>
@@ -420,6 +443,12 @@ const CustomerSeatSelection = ({
           </div>
         </CardContent>
       </Card>
+      {error && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">{error}</AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-center">

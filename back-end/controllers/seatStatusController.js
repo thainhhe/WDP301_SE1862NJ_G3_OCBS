@@ -12,11 +12,11 @@ const reserveSeats = asyncHandler(async (req, res) => {
 
   // Kiểm tra dữ liệu đầu vào
   if (
-      !showtimeId ||
-      !seatIds ||
-      !Array.isArray(seatIds) ||
-      seatIds.length === 0 ||
-      !userId
+    !showtimeId ||
+    !seatIds ||
+    !Array.isArray(seatIds) ||
+    seatIds.length === 0 ||
+    !userId
   ) {
     console.error("Invalid request data:", { showtimeId, seatIds, userId });
     res.status(400);
@@ -25,8 +25,8 @@ const reserveSeats = asyncHandler(async (req, res) => {
 
   // Kiểm tra showtimeId và userId là ObjectId hợp lệ
   if (
-      !mongoose.isValidObjectId(showtimeId) ||
-      !mongoose.isValidObjectId(userId)
+    !mongoose.isValidObjectId(showtimeId) ||
+    !mongoose.isValidObjectId(userId)
   ) {
     console.error("Invalid ObjectId:", { showtimeId, userId });
     res.status(400);
@@ -69,7 +69,7 @@ const reserveSeats = asyncHandler(async (req, res) => {
 
   // Tạo reservationExpires
   const currentTime = Date.now();
-  const reservationExpires = new Date(currentTime + 10 * 60 * 1000); // Hết hạn sau 10 phút
+  const reservationExpires = new Date(currentTime + 5 * 60 * 1000); // Hết hạn sau 5 phút
   if (isNaN(reservationExpires.getTime())) {
     console.error("Invalid reservationExpires:", {
       currentTime,
@@ -80,19 +80,19 @@ const reserveSeats = asyncHandler(async (req, res) => {
   }
 
   const updateResult = await SeatStatus.updateMany(
-      {
-        showtime: showtimeId,
-        seat: { $in: seatIds },
-        status: "available",
+    {
+      showtime: showtimeId,
+      seat: { $in: seatIds },
+      status: "available",
+    },
+    {
+      $set: {
+        status: "reserved",
+        reservedBy: userId,
+        reservedAt: new Date(currentTime),
+        reservationExpires,
       },
-      {
-        $set: {
-          status: "reserved",
-          reservedBy: userId,
-          reservedAt: new Date(currentTime),
-          reservationExpires,
-        },
-      }
+    }
   );
   console.log("Updated seats:", updateResult.modifiedCount);
   const updatedSeats = await SeatStatus.find({
@@ -131,10 +131,10 @@ const releaseReservedSeats = asyncHandler(async (req, res) => {
 
   // Kiểm tra đầu vào
   if (
-      !showtimeId ||
-      !seatIds ||
-      !Array.isArray(seatIds) ||
-      seatIds.length === 0
+    !showtimeId ||
+    !seatIds ||
+    !Array.isArray(seatIds) ||
+    seatIds.length === 0
   ) {
     res.status(400);
     throw new Error("Invalid showtimeId or seatIds");
@@ -159,33 +159,33 @@ const releaseReservedSeats = asyncHandler(async (req, res) => {
 
   // Kiểm tra trạng thái và quyền sở hữu
   const invalidSeats = existingSeats.filter(
-      (seat) =>
-          seat.status !== "reserved" ||
-          seat.reservedBy.toString() !== userId.toString()
+    (seat) =>
+      seat.status !== "reserved" ||
+      seat.reservedBy.toString() !== userId.toString()
   );
   if (invalidSeats.length > 0) {
     res.status(400);
     throw new Error(
-        "Some seats are not reserved by you or not in reserved status"
+      "Some seats are not reserved by you or not in reserved status"
     );
   }
 
   // Cập nhật trạng thái ghế
   const updateResult = await SeatStatus.updateMany(
-      {
-        showtime: showtimeId,
-        seat: { $in: seatIds },
-        status: "reserved",
-        reservedBy: userId,
+    {
+      showtime: showtimeId,
+      seat: { $in: seatIds },
+      status: "reserved",
+      reservedBy: userId,
+    },
+    {
+      $set: {
+        status: "available",
+        reservedAt: null,
+        reservationExpires: null,
+        reservedBy: null,
       },
-      {
-        $set: {
-          status: "available",
-          reservedAt: null,
-          reservationExpires: null,
-          reservedBy: null,
-        },
-      }
+    }
   );
 
   // Kiểm tra kết quả cập nhật
@@ -220,11 +220,11 @@ const bookSeats = asyncHandler(async (req, res) => {
 
   // Kiểm tra đầu vào
   if (
-      !showtimeId ||
-      !seatIds ||
-      !Array.isArray(seatIds) ||
-      seatIds.length === 0 ||
-      !bookingId
+    !showtimeId ||
+    !seatIds ||
+    !Array.isArray(seatIds) ||
+    seatIds.length === 0 ||
+    !bookingId
   ) {
     res.status(400);
     throw new Error("Invalid showtimeId, seatIds, or bookingId");
@@ -255,7 +255,7 @@ const bookSeats = asyncHandler(async (req, res) => {
   }
 
   const invalidSeats = existingSeats.filter(
-      (seat) => !["available", "reserved"].includes(seat.status)
+    (seat) => !["available", "reserved"].includes(seat.status)
   );
   if (invalidSeats.length > 0) {
     res.status(400);
@@ -263,19 +263,19 @@ const bookSeats = asyncHandler(async (req, res) => {
   }
 
   const updateResult = await SeatStatus.updateMany(
-      {
-        showtime: showtimeId,
-        seat: { $in: seatIds },
-        status: { $in: ["available", "reserved"] },
+    {
+      showtime: showtimeId,
+      seat: { $in: seatIds },
+      status: { $in: ["available", "reserved"] },
+    },
+    {
+      $set: {
+        status: "booked",
+        booking: bookingId,
+        reservedAt: null,
+        reservationExpires: null,
       },
-      {
-        $set: {
-          status: "booked",
-          booking: bookingId,
-          reservedAt: null,
-          reservationExpires: null,
-        },
-      }
+    }
   );
 
   if (updateResult.modifiedCount !== seatIds.length) {
@@ -308,17 +308,17 @@ const cleanupExpiredReservations = asyncHandler(async (req, res) => {
   const now = new Date();
 
   const updateResult = await SeatStatus.updateMany(
-      {
-        status: "reserved",
-        reservationExpires: { $lt: now },
+    {
+      status: "reserved",
+      reservationExpires: { $lt: now },
+    },
+    {
+      $set: {
+        status: "available",
+        reservedAt: null,
+        reservationExpires: null,
       },
-      {
-        $set: {
-          status: "available",
-          reservedAt: null,
-          reservationExpires: null,
-        },
-      }
+    }
   );
 
   res.json({
@@ -334,18 +334,18 @@ const toggleSeatBlock = asyncHandler(async (req, res) => {
   const newStatus = block ? "blocked" : "available";
 
   const updateResult = await SeatStatus.updateMany(
-      {
-        showtime: showtimeId,
-        seat: { $in: seatIds },
+    {
+      showtime: showtimeId,
+      seat: { $in: seatIds },
+    },
+    {
+      $set: {
+        status: newStatus,
+        reservedAt: null,
+        reservationExpires: null,
+        booking: null,
       },
-      {
-        $set: {
-          status: newStatus,
-          reservedAt: null,
-          reservationExpires: null,
-          booking: null,
-        },
-      }
+    }
   );
 
   res.json({
@@ -370,8 +370,8 @@ const getSeatStatusByShowtime = asyncHandler(async (req, res) => {
   }
 
   const seatStatuses = await SeatStatus.find({ showtime: showtimeId })
-      .populate("seat")
-      .populate("reservedBy", "name email _id");
+    .populate("seat")
+    .populate("reservedBy", "name email _id");
 
   res.json({
     success: true,

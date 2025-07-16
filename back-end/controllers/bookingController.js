@@ -390,6 +390,32 @@ const verifyTicket = asyncHandler(async (req, res) => {
   if (!booking) {
     return res.status(404).json({ valid: false, message: "Vé không tồn tại!" });
   }
+  // Kiểm tra hết hạn mã QR dựa trên thời gian suất chiếu
+  const now = new Date();
+  const showtime = booking.showtime;
+  let expired = false;
+  if (showtime) {
+    // Nếu có endTime thì dùng endTime, không thì dùng startTime
+    const endTime = showtime.endTime ? new Date(showtime.endTime) : new Date(showtime.startTime);
+    if (now > endTime) {
+      expired = true;
+    }
+  }
+  if (expired) {
+    return res.status(400).json({
+      valid: false,
+      message: "Mã QR đã hết hạn (suất chiếu đã kết thúc)!",
+      ticket: {
+        bookingId: booking._id,
+        movie: booking.showtime.movie.title,
+        showtime: booking.showtime.startTime,
+        theater: booking.showtime.theater.name,
+        branch: booking.showtime.branch.name,
+        seats: booking.seats.map(s => `${s.row}${s.number}`),
+        checkedIn: booking.checkedIn,
+      }
+    });
+  }
   res.json({
     valid: true,
     checkedIn: booking.checkedIn,
