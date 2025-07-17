@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, Link } from "react-router-dom"
-import { Calendar, Clock, MapPin, Film, Star, DollarSign, Filter, Search } from "lucide-react"
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Film,
+  Star,
+  DollarSign,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+} from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,17 +33,44 @@ const ShowtimesPage = () => {
   const [branches, setBranches] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [filters, setFilters] = useState({
     branchId: "all",
-    date: "",
     time: "all",
     search: "",
   })
   const [groupedShowtimes, setGroupedShowtimes] = useState({})
+  const [availableDates, setAvailableDates] = useState([])
+
+  // Generate next 7 days for quick selection
+  const getNext7Days = () => {
+    const days = []
+    const today = new Date()
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
+      days.push({
+        date: date.toISOString().split("T")[0],
+        label:
+            i === 0
+                ? "Today"
+                : i === 1
+                    ? "Tomorrow"
+                    : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+        fullLabel: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+        isToday: i === 0,
+        isTomorrow: i === 1,
+      })
+    }
+    return days
+  }
+
+  const quickDays = getNext7Days()
 
   useEffect(() => {
     fetchData()
-  }, [movieId, filters])
+  }, [movieId, selectedDate, filters])
 
   useEffect(() => {
     if (!showtimes || showtimes.length === 0) {
@@ -40,42 +78,38 @@ const ShowtimesPage = () => {
       return
     }
 
-    // Group showtimes by date and branch
+    // Group showtimes by branch for the selected date
     const grouped = {}
 
     showtimes.forEach((showtime) => {
-      // Ensure we have valid showtime data
-      if (!showtime || !showtime.startTime) {
-        return
-      }
+      if (!showtime || !showtime.startTime) return
 
-      const date = new Date(showtime.startTime).toDateString()
+      const showtimeDate = new Date(showtime.startTime).toDateString()
+      const selectedDateObj = new Date(selectedDate).toDateString()
+
+      // Only include showtimes for the selected date
+      if (showtimeDate !== selectedDateObj) return
+
       const branchId = showtime.branch?._id || "unknown"
       const branchName = showtime.branch?.name || "Unknown Cinema"
 
-      if (!grouped[date]) {
-        grouped[date] = {}
-      }
-
-      if (!grouped[date][branchId]) {
-        grouped[date][branchId] = {
+      if (!grouped[branchId]) {
+        grouped[branchId] = {
           branch: showtime.branch || { _id: branchId, name: branchName },
           showtimes: [],
         }
       }
 
-      grouped[date][branchId].showtimes.push(showtime)
+      grouped[branchId].showtimes.push(showtime)
     })
 
-    // Sort showtimes within each group by time
-    Object.keys(grouped).forEach((date) => {
-      Object.keys(grouped[date]).forEach((branchId) => {
-        grouped[date][branchId].showtimes.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-      })
+    // Sort showtimes within each branch by time
+    Object.keys(grouped).forEach((branchId) => {
+      grouped[branchId].showtimes.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
     })
 
     setGroupedShowtimes(grouped)
-  }, [showtimes])
+  }, [showtimes, selectedDate])
 
   const fetchData = async () => {
     try {
@@ -84,7 +118,9 @@ const ShowtimesPage = () => {
 
       // Build query parameters for showtimes
       const showtimeParams = {
-        limit: 100,
+        limit: 200,
+        // Always filter from current time forward to prevent past showtimes
+        startTimeAfter: new Date().toISOString(),
       }
 
       // Add movieId if provided
@@ -102,39 +138,60 @@ const ShowtimesPage = () => {
         showtimeParams.search = filters.search.trim()
       }
 
-      // Filter by specific date if provided
-      if (filters.date) {
-        const selectedDate = new Date(filters.date)
-        const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
+      // Filter by specific date
+      const selectedDateObj = new Date(selectedDate)
+      const startOfDay = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
 
-        showtimeParams.startTimeAfter = startOfDay.toISOString()
-        showtimeParams.startTimeBefore = endOfDay.toISOString()
-      } else {
-        // If no date filter, only show future showtimes
+      // Only apply date filter if it's not today, or if it's today, make sure we don't show past times
+      if (selectedDate === new Date().toISOString().split("T")[0]) {
+        // For today, use current time as start
         showtimeParams.startTimeAfter = new Date().toISOString()
+      } else {
+        // For future dates, use start of day
+        showtimeParams.startTimeAfter = startOfDay.toISOString()
       }
+      showtimeParams.startTimeBefore = endOfDay.toISOString()
 
       // Filter by time of day if specified
       if (filters.time !== "all" && filters.time) {
+        const baseDate = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
         const now = new Date()
-        const today = filters.date ? new Date(filters.date) : new Date()
-        const baseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
         switch (filters.time) {
           case "morning":
-            if (!filters.date) {
-              showtimeParams.startTimeAfter = new Date(baseDate.getTime() + 6 * 60 * 60 * 1000).toISOString()
+            const morningStart = new Date(baseDate.getTime() + 6 * 60 * 60 * 1000)
+            const morningEnd = new Date(baseDate.getTime() + 12 * 60 * 60 * 1000)
+
+            // If it's today and current time is past morning start, use current time
+            if (selectedDate === new Date().toISOString().split("T")[0] && now > morningStart) {
+              showtimeParams.startTimeAfter = now.toISOString()
+            } else {
+              showtimeParams.startTimeAfter = morningStart.toISOString()
             }
-            showtimeParams.startTimeBefore = new Date(baseDate.getTime() + 12 * 60 * 60 * 1000).toISOString()
+            showtimeParams.startTimeBefore = morningEnd.toISOString()
             break
           case "afternoon":
-            showtimeParams.startTimeAfter = new Date(baseDate.getTime() + 12 * 60 * 60 * 1000).toISOString()
-            showtimeParams.startTimeBefore = new Date(baseDate.getTime() + 18 * 60 * 60 * 1000).toISOString()
+            const afternoonStart = new Date(baseDate.getTime() + 12 * 60 * 60 * 1000)
+            const afternoonEnd = new Date(baseDate.getTime() + 18 * 60 * 60 * 1000)
+
+            if (selectedDate === new Date().toISOString().split("T")[0] && now > afternoonStart) {
+              showtimeParams.startTimeAfter = now.toISOString()
+            } else {
+              showtimeParams.startTimeAfter = afternoonStart.toISOString()
+            }
+            showtimeParams.startTimeBefore = afternoonEnd.toISOString()
             break
           case "evening":
-            showtimeParams.startTimeAfter = new Date(baseDate.getTime() + 18 * 60 * 60 * 1000).toISOString()
-            showtimeParams.startTimeBefore = new Date(baseDate.getTime() + 24 * 60 * 60 * 1000).toISOString()
+            const eveningStart = new Date(baseDate.getTime() + 18 * 60 * 60 * 1000)
+            const eveningEnd = new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)
+
+            if (selectedDate === new Date().toISOString().split("T")[0] && now > eveningStart) {
+              showtimeParams.startTimeAfter = now.toISOString()
+            } else {
+              showtimeParams.startTimeAfter = eveningStart.toISOString()
+            }
+            showtimeParams.startTimeBefore = eveningEnd.toISOString()
             break
         }
       }
@@ -177,13 +234,26 @@ const ShowtimesPage = () => {
         }
       }
 
+      // Filter out past showtimes on client side as additional safety
+      const now = new Date()
+      const futureShowtimes = fetchedShowtimes.filter((showtime) => {
+        const showtimeStart = new Date(showtime.startTime)
+        return showtimeStart > now
+      })
+
       // Set the fetched data
-      setShowtimes(fetchedShowtimes)
+      setShowtimes(futureShowtimes)
       setBranches(fetchedBranches)
 
       if (movieId && movieData) {
         setMovie(movieData)
       }
+
+      // Extract available dates from showtimes for date navigation
+      const dates = [
+        ...new Set(futureShowtimes.map((showtime) => new Date(showtime.startTime).toISOString().split("T")[0])),
+      ].sort()
+      setAvailableDates(dates)
     } catch (error) {
       setError(`Failed to load showtimes: ${error.message}`)
     } finally {
@@ -198,31 +268,31 @@ const ShowtimesPage = () => {
     }))
   }
 
+  const handleDateChange = (date) => {
+    setSelectedDate(date)
+  }
+
+  const navigateDate = (direction) => {
+    const currentDate = new Date(selectedDate)
+    const newDate = new Date(currentDate)
+    newDate.setDate(currentDate.getDate() + direction)
+
+    // Don't allow navigation to past dates
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    newDate.setHours(0, 0, 0, 0)
+
+    if (newDate >= today) {
+      setSelectedDate(newDate.toISOString().split("T")[0])
+    }
+  }
+
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     })
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today"
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow"
-    } else {
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      })
-    }
   }
 
   const formatPrice = (price) => {
@@ -246,7 +316,17 @@ const ShowtimesPage = () => {
     return "Available"
   }
 
+  const isShowtimePast = (startTime) => {
+    return new Date(startTime) <= new Date()
+  }
+
   const handleBookNow = (showtime) => {
+    // Double check that showtime is not in the past
+    if (isShowtimePast(showtime.startTime)) {
+      alert("This showtime has already started and cannot be booked.")
+      return
+    }
+
     // Navigate to booking page with showtime ID
     window.location.href = `/seat-selection/${showtime._id}`
   }
@@ -264,9 +344,29 @@ const ShowtimesPage = () => {
     return `http://localhost:5000/${cleanPath}`
   }
 
+  const getSelectedDateInfo = () => {
+    const selectedDateObj = new Date(selectedDate)
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    if (selectedDateObj.toDateString() === today.toDateString()) {
+      return { label: "Today", fullLabel: "Today's Showtimes" }
+    } else if (selectedDateObj.toDateString() === tomorrow.toDateString()) {
+      return { label: "Tomorrow", fullLabel: "Tomorrow's Showtimes" }
+    } else {
+      return {
+        label: selectedDateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+        fullLabel: selectedDateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+      }
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner />
   }
+
+  const selectedDateInfo = getSelectedDateInfo()
 
   return (
       <div className="min-h-screen bg-gray-50">
@@ -355,16 +455,81 @@ const ShowtimesPage = () => {
               </div>
           )}
 
-          {/* Filters */}
+          {/* Enhanced Date Selection */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Filter className="w-5 h-5" />
-                Filter Showtimes
+                <CalendarDays className="w-5 h-5" />
+                Select Date & Filters
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <CardContent className="space-y-6">
+              {/* Quick Date Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Quick Date Selection</label>
+                <div className="flex flex-wrap gap-2">
+                  {quickDays.map((day) => (
+                      <Button
+                          key={day.date}
+                          variant={selectedDate === day.date ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleDateChange(day.date)}
+                          className={`${
+                              selectedDate === day.date
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
+                                  : "hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                          } ${day.isToday ? "ring-2 ring-red-200" : ""}`}
+                      >
+                        {day.label}
+                      </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date Navigation */}
+              <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateDate(-1)}
+                    disabled={selectedDate === new Date().toISOString().split("T")[0]}
+                    className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous Day
+                </Button>
+
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-gray-900">{selectedDateInfo.fullLabel}</div>
+                  <div className="text-sm text-gray-600">
+                    {new Date(selectedDate).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </div>
+                </div>
+
+                <Button variant="outline" size="sm" onClick={() => navigateDate(1)} className="flex items-center gap-2">
+                  Next Day
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Custom Date Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Or select a specific date</label>
+                <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="max-w-xs"
+                />
+              </div>
+
+              {/* Other Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Cinema Branch</label>
                   <Select value={filters.branchId} onValueChange={(value) => handleFilterChange("branchId", value)}>
@@ -383,17 +548,7 @@ const ShowtimesPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                  <Input
-                      type="date"
-                      value={filters.date}
-                      onChange={(e) => handleFilterChange("date", e.target.value)}
-                      min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Time of Day</label>
                   <Select value={filters.time} onValueChange={(value) => handleFilterChange("time", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All times" />
@@ -408,7 +563,7 @@ const ShowtimesPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search Cinema</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
@@ -431,159 +586,178 @@ const ShowtimesPage = () => {
               </Alert>
           )}
 
-          {/* Showtimes */}
+          {/* Showtimes for Selected Date */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+              <Calendar className="w-6 h-6 mr-2" />
+              {selectedDateInfo.fullLabel}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {Object.keys(groupedShowtimes).length > 0
+                  ? `${Object.values(groupedShowtimes).reduce((total, branch) => total + branch.showtimes.length, 0)} showtimes available`
+                  : "No showtimes available for this date"}
+            </p>
+          </div>
+
+          {/* Showtimes Display */}
           {Object.keys(groupedShowtimes).length > 0 ? (
-              <div className="space-y-8">
-                {Object.keys(groupedShowtimes)
-                    .sort((a, b) => new Date(a) - new Date(b))
-                    .map((date) => (
-                        <div key={date}>
-                          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                            <Calendar className="w-6 h-6 mr-2" />
-                            {formatDate(date)}
-                            <span className="ml-2 text-sm font-normal text-gray-500">
-                      {new Date(date).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                          </h2>
+              <div className="space-y-6">
+                {Object.values(groupedShowtimes).map((branchData) => (
+                    <Card key={branchData.branch?._id || "unknown"} className="overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-xl text-gray-900 flex items-center gap-2">
+                              <MapPin className="w-5 h-5 text-red-600" />
+                              {branchData.branch?.name || "Unknown Cinema"}
+                            </CardTitle>
+                            <CardDescription className="flex items-center mt-2">
+                        <span className="text-gray-600">
+                          {branchData.branch?.location?.address ||
+                              branchData.branch?.location?.city ||
+                              "Location not available"}
+                        </span>
+                            </CardDescription>
+                            {branchData.branch?.contact?.phone && (
+                                <CardDescription className="mt-1 text-sm">📞 {branchData.branch.contact.phone}</CardDescription>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="bg-white">
+                            {branchData.showtimes.length} show{branchData.showtimes.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {branchData.showtimes.map((showtime) => {
+                            const availableSeats = showtime.seatsAvailable
+                            const totalSeats = showtime.seatsAvailable + showtime.seatsBooked
+                            const availabilityColor = getAvailabilityColor(availableSeats, totalSeats)
+                            const availabilityText = getAvailabilityText(availableSeats, totalSeats)
+                            const isPast = isShowtimePast(showtime.startTime)
 
-                          <div className="space-y-6">
-                            {Object.values(groupedShowtimes[date]).map((branchData) => (
-                                <Card key={branchData.branch?._id || "unknown"} className="overflow-hidden">
-                                  <CardHeader className="bg-gray-50">
-                                    <div className="flex justify-between items-start">
+                            return (
+                                <Card
+                                    key={showtime._id}
+                                    className={`border transition-all duration-200 hover:shadow-lg ${
+                                        isPast ? "opacity-50 bg-gray-50" : "border-gray-200 hover:border-red-300"
+                                    }`}
+                                >
+                                  <CardContent className="p-4">
+                                    {/* Movie title if not filtered by specific movie */}
+                                    {!movieId && showtime.movie && (
+                                        <div className="mb-3">
+                                          <h4 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                                            {showtime.movie.title}
+                                          </h4>
+                                          {showtime.movie.genre && (
+                                              <div className="flex flex-wrap gap-1 mt-1">
+                                                {showtime.movie.genre.slice(0, 2).map((genre, index) => (
+                                                    <Badge key={index} variant="outline" className="text-xs">
+                                                      {genre}
+                                                    </Badge>
+                                                ))}
+                                              </div>
+                                          )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-start mb-3">
                                       <div>
-                                        <CardTitle className="text-xl text-gray-900">
-                                          {branchData.branch?.name || "Unknown Cinema"}
-                                        </CardTitle>
-                                        <CardDescription className="flex items-center mt-1">
-                                          <MapPin className="w-4 h-4 mr-1" />
-                                          {branchData.branch?.location?.address ||
-                                              branchData.branch?.location?.city ||
-                                              "Location not available"}
-                                        </CardDescription>
-                                        {branchData.branch?.contact?.phone && (
-                                            <CardDescription className="mt-1">📞 {branchData.branch.contact.phone}</CardDescription>
-                                        )}
+                                        <div className="flex items-center space-x-2 mb-1">
+                                          <Clock className="w-4 h-4 text-gray-500" />
+                                          <span className={`font-bold text-lg ${isPast ? "text-gray-500" : "text-gray-900"}`}>
+                                    {formatTime(showtime.startTime)}
+                                  </span>
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          {showtime.theater?.name || "Unknown Theater"}
+                                        </div>
                                       </div>
-                                      <Badge variant="outline">
-                                        {branchData.showtimes.length} show
-                                        {branchData.showtimes.length !== 1 ? "s" : ""}
-                                      </Badge>
+                                      <div className="text-right">
+                                        <div className={`text-sm font-medium ${isPast ? "text-gray-500" : availabilityColor}`}>
+                                          {isPast ? "Past" : availabilityText}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {availableSeats}/{totalSeats} seats
+                                        </div>
+                                      </div>
                                     </div>
-                                  </CardHeader>
-                                  <CardContent className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                      {branchData.showtimes.map((showtime) => {
-                                        const availableSeats = showtime.seatsAvailable
-                                        const totalSeats = showtime.seatsAvailable + showtime.seatsBooked
-                                        const availabilityColor = getAvailabilityColor(availableSeats, totalSeats)
-                                        const availabilityText = getAvailabilityText(availableSeats, totalSeats)
 
-                                        return (
-                                            <Card
-                                                key={showtime._id}
-                                                className="border border-gray-200 hover:shadow-md transition-shadow"
-                                            >
-                                              <CardContent className="p-4">
-                                                {/* Movie title if not filtered by specific movie */}
-                                                {!movieId && showtime.movie && (
-                                                    <div className="mb-2">
-                                                      <h4 className="font-semibold text-gray-900 text-sm">{showtime.movie.title}</h4>
-                                                    </div>
-                                                )}
+                                    {/* Special Features */}
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                      {showtime.isFirstShow && (
+                                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                            First Show
+                                          </Badge>
+                                      )}
+                                      {showtime.isLastShow && (
+                                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
+                                            Last Show
+                                          </Badge>
+                                      )}
+                                      {isPast && (
+                                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">
+                                            Past Showtime
+                                          </Badge>
+                                      )}
+                                    </div>
 
-                                                <div className="flex justify-between items-start mb-3">
-                                                  <div>
-                                                    <div className="flex items-center space-x-2 mb-1">
-                                                      <Clock className="w-4 h-4 text-gray-500" />
-                                                      <span className="font-semibold text-lg">
-                                            {formatTime(showtime.startTime)}
-                                          </span>
-                                                    </div>
-                                                    <div className="text-sm text-gray-600">
-                                                      {showtime.theater?.name || "Unknown Theater"}
-                                                    </div>
-                                                  </div>
-                                                  <div className="text-right">
-                                                    <div className={`text-sm font-medium ${availabilityColor}`}>
-                                                      {availabilityText}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                      {availableSeats}/{totalSeats} seats
-                                                    </div>
+                                    {/* Pricing */}
+                                    {showtime.price && (
+                                        <div className="mb-4">
+                                          <div className="flex items-center mb-2">
+                                            <DollarSign className="w-4 h-4 mr-1 text-gray-500" />
+                                            <span className="text-sm font-medium text-gray-700">Prices:</span>
+                                          </div>
+                                          <div className="grid grid-cols-3 gap-1 text-xs">
+                                            <div className="text-center">
+                                              <div className="font-medium text-gray-600">Standard</div>
+                                              <div className="text-green-600 font-semibold">
+                                                {formatPrice(showtime.price.standard || 0)}
+                                              </div>
+                                            </div>
+                                            {showtime.price.vip > 0 && (
+                                                <div className="text-center">
+                                                  <div className="font-medium text-gray-600">VIP</div>
+                                                  <div className="text-green-600 font-semibold">
+                                                    {formatPrice(showtime.price.vip)}
                                                   </div>
                                                 </div>
-
-                                                {/* Special Features */}
-                                                <div className="flex flex-wrap gap-1 mb-3">
-                                                  {showtime.isFirstShow && (
-                                                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                                        First Show
-                                                      </Badge>
-                                                  )}
-                                                  {showtime.isLastShow && (
-                                                      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
-                                                        Last Show
-                                                      </Badge>
-                                                  )}
+                                            )}
+                                            {showtime.price.couple > 0 && (
+                                                <div className="text-center">
+                                                  <div className="font-medium text-gray-600">Couple</div>
+                                                  <div className="text-green-600 font-semibold">
+                                                    {formatPrice(showtime.price.couple)}
+                                                  </div>
                                                 </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                    )}
 
-                                                {/* Pricing */}
-                                                {showtime.price && (
-                                                    <div className="mb-4">
-                                                      <div className="flex items-center mb-2">
-                                                        <DollarSign className="w-4 h-4 mr-1 text-gray-500" />
-                                                        <span className="text-sm font-medium text-gray-700">Ticket Prices:</span>
-                                                      </div>
-                                                      <div className="grid grid-cols-3 gap-2 text-xs">
-                                                        <div className="text-center">
-                                                          <div className="font-medium text-gray-600">Standard</div>
-                                                          <div className="text-green-600 font-semibold">
-                                                            {formatPrice(showtime.price.standard || 0)}
-                                                          </div>
-                                                        </div>
-                                                        {showtime.price.vip > 0 && (
-                                                            <div className="text-center">
-                                                              <div className="font-medium text-gray-600">VIP</div>
-                                                              <div className="text-green-600 font-semibold">
-                                                                {formatPrice(showtime.price.vip)}
-                                                              </div>
-                                                            </div>
-                                                        )}
-                                                        {showtime.price.couple > 0 && (
-                                                            <div className="text-center">
-                                                              <div className="font-medium text-gray-600">Couple</div>
-                                                              <div className="text-green-600 font-semibold">
-                                                                {formatPrice(showtime.price.couple)}
-                                                              </div>
-                                                            </div>
-                                                        )}
-                                                      </div>
-                                                    </div>
-                                                )}
-
-                                                <Button
-                                                    onClick={() => handleBookNow(showtime)}
-                                                    disabled={availableSeats === 0}
-                                                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400"
-                                                >
-                                                  {availableSeats === 0 ? "Sold Out" : "Book Now"}
-                                                </Button>
-                                              </CardContent>
-                                            </Card>
-                                        )
-                                      })}
-                                    </div>
+                                    <Button
+                                        onClick={() => handleBookNow(showtime)}
+                                        disabled={availableSeats === 0 || isPast}
+                                        className={`w-full ${
+                                            isPast
+                                                ? "bg-gray-400 cursor-not-allowed"
+                                                : availableSeats === 0
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-red-600 hover:bg-red-700"
+                                        }`}
+                                    >
+                                      {isPast ? "Showtime Passed" : availableSeats === 0 ? "Sold Out" : "Book Now"}
+                                    </Button>
                                   </CardContent>
                                 </Card>
-                            ))}
-                          </div>
+                            )
+                          })}
                         </div>
-                    ))}
+                      </CardContent>
+                    </Card>
+                ))}
               </div>
           ) : (
               <Card className="text-center py-12">
@@ -593,17 +767,24 @@ const ShowtimesPage = () => {
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No showtimes found</h3>
                   <p className="text-gray-500 mb-4">
-                    {filters.branchId !== "all" || filters.date || filters.time !== "all" || filters.search
+                    {filters.branchId !== "all" || filters.time !== "all" || filters.search
                         ? "Try adjusting your filters to see more results."
                         : movie
-                            ? `No showtimes are currently available for "${movie.title}".`
-                            : "No showtimes are currently available."}
+                            ? `No showtimes are available for "${movie.title}" on ${selectedDateInfo.fullLabel.toLowerCase()}.`
+                            : `No showtimes are available for ${selectedDateInfo.fullLabel.toLowerCase()}.`}
                   </p>
-                  {!movie && (
-                      <Button asChild variant="outline">
-                        <Link to="/movies">Browse Movies</Link>
-                      </Button>
-                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    {selectedDate !== new Date().toISOString().split("T")[0] && (
+                        <Button onClick={() => handleDateChange(new Date().toISOString().split("T")[0])} variant="outline">
+                          View Today's Showtimes
+                        </Button>
+                    )}
+                    {!movie && (
+                        <Button asChild variant="outline">
+                          <Link to="/movies">Browse Movies</Link>
+                        </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
           )}
