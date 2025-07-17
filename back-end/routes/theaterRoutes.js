@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createTheater,
+  getAllTheaters,
   getTheatersByBranch,
   getTheaterById,
   updateTheater,
@@ -11,6 +12,7 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Public routes
+router.get("/", getAllTheaters);
 router.get("/branch/:branchId", getTheatersByBranch);
 router.get("/:id", getTheaterById);
 

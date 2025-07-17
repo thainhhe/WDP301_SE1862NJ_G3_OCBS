@@ -7,6 +7,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import FastfoodIcon from '@mui/icons-material/Fastfood';
+import TheatersIcon from "@mui/icons-material/Theaters";
+import BranchIcon from '@mui/icons-material/Theaters';
 
 const navConfig = [
   {
@@ -54,6 +56,17 @@ const navConfig = [
     text: "Combo Management",
     icon: <FastfoodIcon />,
     path: "/admin/combos",
+  },
+  {
+    type: "item",
+    text: "Theater Management",
+    path: "/admin/theaters",
+    icon: <TheatersIcon />,
+  },  {
+    type: "item",
+    text: "Branch Management",
+    path: "/admin/branchs",
+    icon: <TheatersIcon />,
   },
   {
     type: "parent",
