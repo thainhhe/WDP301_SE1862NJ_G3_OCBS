@@ -1,77 +1,44 @@
-import api from "./api"
+import api from './api';
 
 export const theaterService = {
-    // Get all theaters with optional filtering
-    async getTheaters(params = {}) {
+    getTheatersByBranch: async (branchId) => {
         try {
-            const response = await api.get("/theaters", { params })
-            return response.data
+            const response = await api.get(`/theaters/branch/${branchId}`);
+            return response.data;
         } catch (error) {
-            console.error("Error fetching theaters:", error)
-            throw new Error(error.response?.data?.message || "Failed to fetch theaters")
+            console.error("Error fetching theaters by branch:", error);
+            throw error;
         }
     },
 
-    // Get theater by ID
-    async getTheaterById(id) {
+    createTheater: async (theaterData) => {
         try {
-            const response = await api.get(`/theaters/${id}`)
-            return response.data
+            const response = await api.post('/theaters', theaterData);
+            return response.data;
         } catch (error) {
-            console.error("Error fetching theater:", error)
-            throw new Error(error.response?.data?.message || "Failed to fetch theater")
+            console.error("Error creating theater:", error);
+            throw error;
         }
     },
 
-    // Create new theater
-    async createTheater(theaterData) {
+    updateTheater: async (id, theaterData) => {
         try {
-            const response = await api.post("/theaters", {
-                name: theaterData.name,
-                capacity: theaterData.capacity,
-                seatLayout: theaterData.seatLayout,
-            })
-            return response.data
+            const response = await api.put(`/theaters/${id}`, theaterData);
+            return response.data;
         } catch (error) {
-            console.error("Error creating theater:", error)
-            throw new Error(error.response?.data?.message || "Failed to create theater")
+            console.error("Error updating theater:", error);
+            throw error;
         }
     },
 
-    // Update theater
-    async updateTheater(id, theaterData) {
+    deleteTheater: async (id) => {
         try {
-            const response = await api.put(`/theaters/${id}`, {
-                name: theaterData.name,
-                capacity: theaterData.capacity,
-                seatLayout: theaterData.seatLayout,
-            })
-            return response.data
+            const response = await api.delete(`/theaters/${id}`);
+            return response.data;
         } catch (error) {
-            console.error("Error updating theater:", error)
-            throw new Error(error.response?.data?.message || "Failed to update theater")
+            console.error("Error deleting theater:", error);
+            throw error;
         }
-    },
+    }
 
-    // Delete theater
-    async deleteTheater(id) {
-        try {
-            await api.delete(`/theaters/${id}`)
-            return { success: true }
-        } catch (error) {
-            console.error("Error deleting theater:", error)
-            throw new Error(error.response?.data?.message || "Failed to delete theater")
-        }
-    },
-
-    // Get theater statistics
-    async getTheaterStats(id) {
-        try {
-            const response = await api.get(`/theaters/${id}/stats`)
-            return response.data
-        } catch (error) {
-            console.error("Error fetching theater stats:", error)
-            throw new Error(error.response?.data?.message || "Failed to fetch theater statistics")
-        }
-    },
-}
+};

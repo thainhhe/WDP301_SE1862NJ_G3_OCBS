@@ -1,12 +1,20 @@
 import mongoose from "mongoose";
 
 const theaterSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    capacity: { type: Number, required: true },
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    branch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Branch',
+        required: true,
+    },
     seatLayout: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "SeatLayout",
-        required: true,
+        default: null,
     },
 }, {
     timestamps: true,

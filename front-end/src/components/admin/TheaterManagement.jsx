@@ -1,489 +1,287 @@
-"use client"
-
 import { useState, useEffect, useCallback } from "react"
-import { Plus, Edit, Trash2, Search, Monitor, AlertCircle, Users, Eye, Settings } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Monitor, Building } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogFooter
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import TheaterForm from "@/components/admin/TheaterForm"
-import SeatLayoutViewer from "@/components/admin/SeatLayoutViewer"
+import TheaterForm from "./TheaterForm"
+import SeatLayoutViewer from "./SeatLayoutViewer"
 import { theaterService } from "@/services/theaterService"
-import { theaterService as seatService } from "@/services/seatService"
+import { branchService } from "@/services/branchService"
+import { seatService } from "@/services/seatService"
+import { toast } from "react-toastify"
 
-const TheaterManagement = () => {
-    const [theaters, setTheaters] = useState([])
-    const [seatLayouts, setSeatLayouts] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-    const [success, setSuccess] = useState(null)
-
-    // Modal states
-    const [showFormModal, setShowFormModal] = useState(false)
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-    const [showSeatLayoutModal, setShowSeatLayoutModal] = useState(false)
-    const [editingTheater, setEditingTheater] = useState(null)
-    const [theaterToDelete, setTheaterToDelete] = useState(null)
-    const [selectedTheaterLayout, setSelectedTheaterLayout] = useState(null)
-
-    // Filter states
-    const [filters, setFilters] = useState({
-        search: "",
-    })
-
-    // Pagination states
-    const [currentPage, setCurrentPage] = useState(1)
-    const [itemsPerPage] = useState(10)
-
-    // Fetch seat layouts
-    const fetchSeatLayouts = useCallback(async () => {
-        try {
-            const data = await seatService.getSeatLayouts()
-            setSeatLayouts(data || [])
-        } catch (err) {
-            console.error("Failed to fetch seat layouts:", err)
-        }
-    }, [])
-
-    // Fetch theaters
-    const fetchTheaters = useCallback(async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const params = {
-                name: filters.search || undefined,
-            }
-            const data = await theaterService.getTheaters(params)
-            setTheaters(Array.isArray(data) ? data : [])
-        } catch (err) {
-            console.error("Failed to fetch theaters:", err)
-            setError("Failed to load theaters. Please try again.")
-            setTheaters([])
-        } finally {
-            setLoading(false)
-        }
-    }, [filters])
-
-    useEffect(() => {
-        fetchSeatLayouts()
-        fetchTheaters()
-    }, [fetchSeatLayouts, fetchTheaters])
-
-    // Clear messages after 5 seconds
-    useEffect(() => {
-        if (success) {
-            const timer = setTimeout(() => setSuccess(null), 5000)
-            return () => clearTimeout(timer)
-        }
-    }, [success])
-
-    useEffect(() => {
-        if (error) {
-            const timer = setTimeout(() => setError(null), 5000)
-            return () => clearTimeout(timer)
-        }
-    }, [error])
-
-    // Handle filter changes
-    const handleFilterChange = (key, value) => {
-        setFilters((prev) => ({ ...prev, [key]: value }))
-        setCurrentPage(1)
-    }
-
-    // Handle theater actions
-    const handleCreateTheater = () => {
-        setEditingTheater(null)
-        setShowFormModal(true)
-    }
-
-    const handleEditTheater = (theater) => {
-        setEditingTheater(theater)
-        setShowFormModal(true)
-    }
-
-    const handleDeleteTheater = (theater) => {
-        setTheaterToDelete(theater)
-        setShowDeleteDialog(true)
-    }
-
-    const handleViewSeatLayout = (theater) => {
-        setSelectedTheaterLayout(theater)
-        setShowSeatLayoutModal(true)
-    }
-
-    // Form submission
-    const handleFormSubmit = async (formData) => {
-        try {
-            setError(null)
-
-            const theaterData = {
-                name: formData.name,
-                capacity: Number(formData.capacity),
-                seatLayout: formData.seatLayout,
-            }
-
-            if (editingTheater) {
-                await theaterService.updateTheater(editingTheater._id, theaterData)
-                setSuccess("Theater updated successfully!")
-            } else {
-                await theaterService.createTheater(theaterData)
-                setSuccess("Theater created successfully!")
-            }
-
-            setShowFormModal(false)
-            fetchTheaters()
-        } catch (err) {
-            console.error("Error saving theater:", err)
-            setError(`Failed to save theater: ${err.message}`)
-        }
-    }
-
-    // Delete confirmation
-    const confirmDeleteTheater = async () => {
-        if (!theaterToDelete) return
-
-        try {
-            setError(null)
-            await theaterService.deleteTheater(theaterToDelete._id)
-            setSuccess("Theater deleted successfully!")
-            setShowDeleteDialog(false)
-            setTheaterToDelete(null)
-            fetchTheaters()
-        } catch (err) {
-            console.error("Error deleting theater:", err)
-            setError(`Failed to delete theater: ${err.message}`)
-        }
-    }
-
-    // Filter theaters
-    const filteredTheaters = theaters.filter((theater) => {
-        const matchesSearch = theater.name.toLowerCase().includes(filters.search.toLowerCase())
-        return matchesSearch
-    })
-
-    // Pagination
-    const totalPages = Math.ceil(filteredTheaters.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedTheaters = filteredTheaters.slice(startIndex, startIndex + itemsPerPage)
-
-    // Get seat layout name
-    const getSeatLayoutName = (seatLayoutId) => {
-        const layout = seatLayouts.find((l) => l._id === seatLayoutId)
-        return layout ? layout.name : "N/A"
+// Helper component for displaying the table of theaters
+const TheatersTable = ({ theaters, onEdit, onDelete, onViewLayout }) => {
+    if (theaters.length === 0) {
+        return (
+            <div className="text-center py-10 border-2 border-dashed rounded-lg bg-gray-50/50">
+                <p className="text-gray-500">No theaters found for this branch.</p>
+            </div>
+        );
     }
 
     return (
+        <div className="rounded-md border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Theater Name</TableHead>
+                        <TableHead>Seat Layout</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {theaters.map((theater) => (
+                        <TableRow key={theater._id}>
+                            <TableCell className="font-medium">{theater.name}</TableCell>
+                            <TableCell>
+                                {theater.seatLayout ? (
+                                    <span className="flex items-center text-green-600">
+                                        <Eye className="w-4 h-4 mr-2" /> Configured
+                                    </span>
+                                ) : (
+                                    <span className="text-orange-500">Not Set</span>
+                                )}
+                            </TableCell>
+                            <TableCell>{new Date(theater.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                    {theater.seatLayout && (
+                                        <Button variant="outline" size="sm" onClick={() => onViewLayout(theater)}>
+                                            <Eye className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                    <Button variant="outline" size="sm" onClick={() => onEdit(theater)}>
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="destructive" size="sm" onClick={() => onDelete(theater)}>
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
+const TheaterManagement = () => {
+    const [branches, setBranches] = useState([]);
+    const [selectedBranch, setSelectedBranch] = useState("");
+    const [theaters, setTheaters] = useState([]);
+    const [seatLayouts, setSeatLayouts] = useState([]);
+
+    const [loading, setLoading] = useState({ branches: true, theaters: false });
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isLayoutViewerOpen, setIsLayoutViewerOpen] = useState(false);
+
+    const [editingTheater, setEditingTheater] = useState(null);
+    const [theaterToDelete, setTheaterToDelete] = useState(null);
+    const [viewingLayout, setViewingLayout] = useState(null);
+
+    const fetchBranches = useCallback(async () => {
+        setLoading(prev => ({ ...prev, branches: true }));
+        try {
+            const data = await branchService.getBranches();
+            setBranches(data.branches || data || []);
+        } catch (err) {
+            toast.error("Could not fetch branches.");
+        } finally {
+            setLoading(prev => ({ ...prev, branches: false }));
+        }
+    }, []);
+
+    const fetchTheatersForBranch = useCallback(async (branchId) => {
+        if (!branchId) {
+            setTheaters([]);
+            return;
+        }
+        setLoading(prev => ({ ...prev, theaters: true }));
+        try {
+            const data = await theaterService.getTheatersByBranch(branchId);
+            setTheaters(data);
+        } catch (err) {
+            toast.error("Could not fetch theaters for the selected branch.");
+            setTheaters([]);
+        } finally {
+            setLoading(prev => ({ ...prev, theaters: false }));
+        }
+    }, []);
+
+    const fetchAllLayouts = useCallback(async () => {
+        try {
+            const data = await seatService.getSeatLayouts();
+            setSeatLayouts(data.seatLayouts || []);
+        } catch (err) {
+            console.error("Could not fetch all seat layouts for viewer.");
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchBranches();
+        fetchAllLayouts();
+    }, [fetchBranches, fetchAllLayouts]);
+
+    const handleBranchChange = (branchId) => {
+        setSelectedBranch(branchId);
+        fetchTheatersForBranch(branchId);
+    };
+
+    const handleAddTheater = () => {
+        setEditingTheater(null);
+        setIsFormModalOpen(true);
+    };
+
+    const handleEditTheater = (theater) => {
+        setEditingTheater(theater);
+        setIsFormModalOpen(true);
+    };
+
+    const handleDeleteTheater = (theater) => {
+        setTheaterToDelete(theater);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleViewLayout = (theater) => {
+        const layout = seatLayouts.find(l => l._id === theater.seatLayout);
+        setViewingLayout(layout);
+        setIsLayoutViewerOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!theaterToDelete) return;
+        try {
+            await theaterService.deleteTheater(theaterToDelete._id);
+            toast.success(`Theater "${theaterToDelete.name}" has been deleted.`);
+            setIsDeleteModalOpen(false);
+            setTheaterToDelete(null);
+            fetchTheatersForBranch(selectedBranch);
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to delete theater.");
+        }
+    };
+
+    const handleFormSubmit = async (formData) => {
+        try {
+            const payload = editingTheater ? formData : { ...formData, branchId: selectedBranch };
+            if (editingTheater) {
+                await theaterService.updateTheater(editingTheater._id, payload);
+                toast.success("Theater updated successfully!");
+            } else {
+                await theaterService.createTheater(payload);
+                toast.success("New theater created successfully!");
+            }
+            setIsFormModalOpen(false);
+            fetchTheatersForBranch(selectedBranch);
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not save the theater.");
+        }
+    };
+
+    return (
         <div className="container mx-auto p-6 space-y-6">
-            {/* Header */}
-            <Card className="shadow-lg border-0 bg-gradient-to-r from-red-50 to-red-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card>
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between">
                     <div>
-                        <CardTitle className="text-3xl font-bold text-gray-800 flex items-center">
-                            <Monitor className="mr-3 h-8 w-8 text-red-600" />
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                            <Monitor className="mr-3 h-7 w-7" />
                             Theater Management
                         </CardTitle>
-                        <p className="text-gray-600 mt-2">Manage theaters and their seating configurations</p>
+                        <p className="text-gray-500 mt-1">Manage theaters within your cinema branches.</p>
                     </div>
-                    <Button
-                        onClick={handleCreateTheater}
-                        className="bg-red-600 hover:bg-red-700 text-white flex items-center shadow-md"
-                        size="lg"
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
+                    <Button onClick={handleAddTheater} disabled={!selectedBranch || loading.theaters}>
+                        <Plus className="w-4 h-4 mr-2" />
                         Add New Theater
                     </Button>
                 </CardHeader>
-            </Card>
-
-            {/* Alerts */}
-            {error && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-            )}
-
-            {success && (
-                <Alert className="border-green-200 bg-green-50">
-                    <AlertCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">{success}</AlertDescription>
-                </Alert>
-            )}
-
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center">
-                            <Monitor className="h-8 w-8 text-blue-600" />
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Total Theaters</p>
-                                <p className="text-2xl font-bold text-gray-900">{theaters.length}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center">
-                            <Users className="h-8 w-8 text-green-600" />
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Total Capacity</p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {theaters.reduce((sum, theater) => sum + (theater.capacity || 0), 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center">
-                            <Settings className="h-8 w-8 text-purple-600" />
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Seat Layouts</p>
-                                <p className="text-2xl font-bold text-gray-900">{seatLayouts.length}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filters */}
-            <Card>
-                <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                <Input
-                                    placeholder="Search theaters by name..."
-                                    value={filters.search}
-                                    onChange={(e) => handleFilterChange("search", e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
-                        </div>
+                <CardContent>
+                    <div className="mb-6 max-w-sm">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select a Branch to Begin
+                        </label>
+                        <Select onValueChange={handleBranchChange} value={selectedBranch}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={loading.branches ? "Loading branches..." : "Choose a branch..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {branches.map(branch => (
+                                    <SelectItem key={branch._id} value={branch._id}>{branch.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                </CardContent>
-            </Card>
 
-            {/* Theater Table */}
-            <Card>
-                <CardContent className="p-0">
-                    {loading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                            <p className="mt-4 text-gray-600">Loading theaters...</p>
-                        </div>
-                    ) : filteredTheaters.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Monitor className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No theaters found</h3>
-                            <p className="text-gray-500 mb-4">
-                                {filters.search
-                                    ? "Try adjusting your search to see more results."
-                                    : "Get started by adding your first theater."}
-                            </p>
-                            <Button onClick={handleCreateTheater} className="bg-red-600 hover:bg-red-700">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add New Theater
-                            </Button>
-                        </div>
+                    {selectedBranch ? (
+                        <TheatersTable
+                            theaters={theaters}
+                            isLoading={loading.theaters}
+                            onEdit={handleEditTheater}
+                            onDelete={handleDeleteTheater}
+                            onViewLayout={handleViewLayout}
+                        />
                     ) : (
-                        <>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-gray-50">
-                                        <TableHead className="font-semibold">Theater Name</TableHead>
-                                        <TableHead className="font-semibold">Capacity</TableHead>
-                                        <TableHead className="font-semibold">Seat Layout</TableHead>
-                                        <TableHead className="font-semibold">Created</TableHead>
-                                        <TableHead className="font-semibold text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedTheaters.map((theater) => (
-                                        <TableRow key={theater._id} className="hover:bg-gray-50">
-                                            <TableCell>
-                                                <div className="font-medium text-red-600">{theater.name}</div>
-                                                <div className="text-sm text-gray-500">ID: {theater._id}</div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center">
-                                                    <Users className="w-4 h-4 mr-2 text-gray-400" />
-                                                    {theater.capacity} seats
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {theater.seatLayout ? (
-                                                    <div className="flex items-center">
-                                                        <Settings className="w-4 h-4 mr-2 text-green-600" />
-                                                        <span className="text-green-600">
-                              {typeof theater.seatLayout === "object"
-                                  ? theater.seatLayout.name
-                                  : getSeatLayoutName(theater.seatLayout)}
-                            </span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center">
-                                                        <AlertCircle className="w-4 h-4 mr-2 text-orange-500" />
-                                                        <span className="text-orange-500">Not configured</span>
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="text-sm text-gray-600">
-                                                    {theater.createdAt ? new Date(theater.createdAt).toLocaleDateString() : "N/A"}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end space-x-2">
-                                                    {theater.seatLayout && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleViewSeatLayout(theater)}
-                                                            title="View Seat Layout"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleEditTheater(theater)}
-                                                        title="Edit Theater"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleDeleteTheater(theater)}
-                                                        className="text-red-600 hover:text-red-700"
-                                                        title="Delete Theater"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-between px-6 py-4 border-t">
-                                    <div className="text-sm text-gray-700">
-                                        Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredTheaters.length)} of{" "}
-                                        {filteredTheaters.length} theaters
-                                    </div>
-                                    <div className="flex space-x-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                            disabled={currentPage === 1}
-                                        >
-                                            Previous
-                                        </Button>
-                                        <span className="flex items-center px-3 py-1 text-sm">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                            disabled={currentPage === totalPages}
-                                        >
-                                            Next
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg bg-gray-50">
+                            <Building size={48} className="mx-auto text-gray-400" />
+                            <p className="mt-4 text-lg font-medium text-gray-600">
+                                Please select a branch
+                            </p>
+                            <p className="text-gray-500">Theaters for the selected branch will appear here.</p>
+                        </div>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Theater Form Modal */}
-            <Dialog open={showFormModal} onOpenChange={setShowFormModal}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="text-xl">{editingTheater ? "Edit Theater" : "Create New Theater"}</DialogTitle>
-                        <DialogDescription>
-                            {editingTheater ? "Update the theater details below." : "Fill in the details to create a new theater."}
-                        </DialogDescription>
+                        <DialogTitle>{editingTheater ? "Edit Theater" : "Create New Theater"}</DialogTitle>
                     </DialogHeader>
                     <TheaterForm
                         theater={editingTheater}
-                        seatLayouts={seatLayouts}
                         onSubmit={handleFormSubmit}
-                        onCancel={() => setShowFormModal(false)}
+                        onCancel={() => setIsFormModalOpen(false)}
                     />
                 </DialogContent>
             </Dialog>
 
-            {/* Seat Layout Viewer Modal */}
-            <Dialog open={showSeatLayoutModal} onOpenChange={setShowSeatLayoutModal}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="text-xl">Seat Layout - {selectedTheaterLayout?.name}</DialogTitle>
-                        <DialogDescription>View the seating arrangement and layout details for this theater.</DialogDescription>
+                        <DialogTitle className="text-red-600">Confirm Deletion</DialogTitle>
                     </DialogHeader>
-                    {selectedTheaterLayout && (
-                        <SeatLayoutViewer
-                            layout={
-                                typeof selectedTheaterLayout.seatLayout === "object"
-                                    ? selectedTheaterLayout.seatLayout
-                                    : seatLayouts.find((l) => l._id === selectedTheaterLayout.seatLayout)
-                            }
-                        />
-                    )}
+                    <DialogDescription>
+                        Are you sure you want to delete "{theaterToDelete?.name}"? This action cannot be undone.
+                    </DialogDescription>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowSeatLayoutModal(false)}>
-                            Close
-                        </Button>
+                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
+            <Dialog open={isLayoutViewerOpen} onOpenChange={setIsLayoutViewerOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-xl text-red-600">Delete Theater</DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete the theater "{theaterToDelete?.name}"? This action cannot be undone and
-                            will permanently remove all associated data including showtimes.
-                        </DialogDescription>
+                        <DialogTitle>Seat Layout: {viewingLayout?.name || 'Details'}</DialogTitle>
                     </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={confirmDeleteTheater} className="bg-red-600 hover:bg-red-700">
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Theater
-                        </Button>
-                    </DialogFooter>
+                    {viewingLayout ? <SeatLayoutViewer layout={viewingLayout} /> : <p>Loading layout...</p>}
                 </DialogContent>
             </Dialog>
         </div>
-    )
+    );
 }
 
-export default TheaterManagement
+export default TheaterManagement;

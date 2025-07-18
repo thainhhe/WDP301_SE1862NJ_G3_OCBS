@@ -9,7 +9,7 @@ import {
   getSeatsByTheater,
   getSeatAvailability,
   initializeSeatStatusesForShowtime,
-} from "../controllers/seatController.js";
+} from "../controllers/seatLayoutController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
