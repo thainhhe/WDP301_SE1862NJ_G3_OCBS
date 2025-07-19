@@ -143,16 +143,3 @@ export const getSeatMap = async (theaterId, branchId) => {
 
   return seatMap;
 };
-
-// Calculate optimal seat layout
-export const calculateSeatLayout = (capacity, preferredSeatsPerRow = 10) => {
-  const rows = Math.ceil(capacity / preferredSeatsPerRow);
-  const seatsPerRow = Math.ceil(capacity / rows);
-
-  return {
-    rows,
-    seatsPerRow,
-    totalCapacity: rows * seatsPerRow,
-    efficiency: capacity / (rows * seatsPerRow),
-  };
-};

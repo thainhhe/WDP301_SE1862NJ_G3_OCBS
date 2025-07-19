@@ -111,7 +111,7 @@ const TheaterSelector = ({ selectedTheaters = [], onTheatersChange, branchId }) 
                                     <div className="flex-1">
                                         <div className="font-medium text-gray-900">{theater.name}</div>
                                         <div className="text-sm text-gray-500">
-                                            Type: {theater.type || "Standard"} • Capacity: {theater.capacity || "N/A"} seats
+                                            Type: {theater.type || "Standard"}
                                         </div>
                                         {theater.description && <div className="text-xs text-gray-400 mt-1">{theater.description}</div>}
                                     </div>
@@ -186,7 +186,7 @@ const TheaterSelector = ({ selectedTheaters = [], onTheatersChange, branchId }) 
                                     <div>
                                         <div className="font-medium text-gray-900">{theater.name}</div>
                                         <div className="text-sm text-gray-500">
-                                            {theater.type || "Standard"} • {theater.capacity || "N/A"} seats
+                                            {theater.type || "Standard"}
                                         </div>
                                     </div>
                                 </div>

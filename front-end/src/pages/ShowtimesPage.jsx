@@ -630,10 +630,6 @@ const ShowtimesPage = () => {
                       <CardContent className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                           {branchData.showtimes.map((showtime) => {
-                            const availableSeats = showtime.seatsAvailable
-                            const totalSeats = showtime.seatsAvailable + showtime.seatsBooked
-                            const availabilityColor = getAvailabilityColor(availableSeats, totalSeats)
-                            const availabilityText = getAvailabilityText(availableSeats, totalSeats)
                             const isPast = isShowtimePast(showtime.startTime)
 
                             return (
@@ -675,11 +671,8 @@ const ShowtimesPage = () => {
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <div className={`text-sm font-medium ${isPast ? "text-gray-500" : availabilityColor}`}>
-                                          {isPast ? "Past" : availabilityText}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {availableSeats}/{totalSeats} seats
+                                        <div className={`text-sm font-medium ${isPast ? "text-gray-500" : "text-gray-900"}`}>
+                                          {isPast ? "Past" : "Available"}
                                         </div>
                                       </div>
                                     </div>
@@ -739,16 +732,14 @@ const ShowtimesPage = () => {
 
                                     <Button
                                         onClick={() => handleBookNow(showtime)}
-                                        disabled={availableSeats === 0 || isPast}
+                                        disabled={isPast}
                                         className={`w-full ${
                                             isPast
                                                 ? "bg-gray-400 cursor-not-allowed"
-                                                : availableSeats === 0
-                                                    ? "bg-gray-400 cursor-not-allowed"
-                                                    : "bg-red-600 hover:bg-red-700"
+                                                : "bg-red-600 hover:bg-red-700"
                                         }`}
                                     >
-                                      {isPast ? "Showtime Passed" : availableSeats === 0 ? "Sold Out" : "Book Now"}
+                                      {isPast ? "Showtime Passed" : "Book Now"}
                                     </Button>
                                   </CardContent>
                                 </Card>

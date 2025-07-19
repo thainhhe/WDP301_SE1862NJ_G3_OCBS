@@ -301,7 +301,6 @@ const AdminShowtimes = () => {
     const startTime = new Date(showtime.startTime)
     const endTime = new Date(showtime.endTime)
 
-    if (showtime.seatsAvailable === 0) return "sold-out"
     if (now < startTime) return "scheduled"
     if (now >= startTime && now <= endTime) return "ongoing"
     if (now > endTime) return "completed"
@@ -316,8 +315,6 @@ const AdminShowtimes = () => {
         return "bg-green-100 text-green-800"
       case "completed":
         return "bg-gray-100 text-gray-800"
-      case "sold-out":
-        return "bg-orange-100 text-orange-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -339,15 +336,6 @@ const AdminShowtimes = () => {
       style: "currency",
       currency: "USD",
     }).format(price)
-  }
-
-  const getTotalSeats = (showtime) => {
-    return showtime.seatsAvailable + showtime.seatsBooked
-  }
-
-  const getOccupancyRate = (showtime) => {
-    const total = getTotalSeats(showtime)
-    return total > 0 ? Math.round((showtime.seatsBooked / total) * 100) : 0
   }
 
   // Get unique branches and theaters for filters
@@ -588,7 +576,6 @@ const AdminShowtimes = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {showtimes.map((showtime) => {
                 const status = getShowtimeStatus(showtime)
-                const occupancyRate = getOccupancyRate(showtime)
                 const isSelected = selectedShowtimes.includes(showtime._id)
 
                 return (
@@ -620,7 +607,6 @@ const AdminShowtimes = () => {
                               {status === "scheduled" && "Scheduled"}
                               {status === "ongoing" && "Ongoing"}
                               {status === "completed" && "Completed"}
-                              {status === "sold-out" && "Sold Out"}
                             </Badge>
                             {showtime.isFirstShow && (
                                 <Badge variant="outline" className="text-xs">
@@ -650,11 +636,6 @@ const AdminShowtimes = () => {
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="w-4 h-4 mr-2" />
                           {formatDateTime(showtime.startTime)} - {formatDateTime(showtime.endTime)}
-                        </div>
-
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Users className="w-4 h-4 mr-2" />
-                          {showtime.seatsAvailable}/{getTotalSeats(showtime)} seats available ({occupancyRate}% booked)
                         </div>
 
                         {/* Price Information */}

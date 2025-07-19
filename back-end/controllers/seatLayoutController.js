@@ -304,21 +304,151 @@ const getSeatsByTheater = asyncHandler(async (req, res) => {
 const getSeatAvailability = asyncHandler(async (req, res) => {
   const { showtimeId } = req.params;
 
+  console.log("🔍 Getting seat availability for showtime:", showtimeId);
+
   const showtime = await Showtime.findById(showtimeId).populate("theater");
   if (!showtime) {
     res.status(404);
     throw new Error("Showtime not found");
   }
 
-  const seats = await Seat.find({
+  console.log("✅ Showtime found:", {
+    id: showtime._id,
+    theater: showtime.theater._id,
+    branch: showtime.branch,
+    theaterName: showtime.theater.name
+  });
+
+  // Kiểm tra theater có seat layout không
+  const theater = await Theater.findById(showtime.theater._id);
+  console.log("🎭 Theater details:", {
+    id: theater._id,
+    name: theater.name,
+    hasSeatLayout: !!theater.seatLayout,
+    seatLayoutId: theater.seatLayout
+  });
+
+  let seats = await Seat.find({
     theater: showtime.theater._id,
     branch: showtime.branch,
     isActive: true,
   }).sort({ row: 1, number: 1 });
 
-  const seatStatuses = await SeatStatus.find({
+  console.log("💺 Found seats:", seats.length);
+  
+  // Nếu không có seats nhưng theater có seat layout, tự động generate seats
+  if (seats.length === 0 && theater.seatLayout) {
+    console.log("🔄 No seats found but theater has layout. Auto-generating seats...");
+    
+    const seatLayout = await SeatLayout.findById(theater.seatLayout);
+    if (seatLayout) {
+      const seatsToCreate = [];
+      const seatSpacing = 40;
+      const rowSpacing = 50;
+
+      for (let rowIndex = 0; rowIndex < seatLayout.rows; rowIndex++) {
+        const rowLabel = seatLayout.rowLabels[rowIndex] || String.fromCharCode(65 + rowIndex);
+        const isVipRow = seatLayout.vipRows.includes(rowLabel);
+
+        for (let seatNumber = 1; seatNumber <= seatLayout.seatsPerRow; seatNumber++) {
+          const isDisabled = seatLayout.disabledSeats.some(
+            (disabled) => disabled.row === rowLabel && disabled.number === seatNumber
+          );
+
+          if (isDisabled) continue;
+
+          let seatType = isVipRow ? "vip" : "standard";
+
+          const coupleConfig = seatLayout.coupleSeats.find(
+            (couple) => couple.row === rowLabel && seatNumber >= couple.startSeat && seatNumber <= couple.endSeat
+          );
+          if (coupleConfig) {
+            seatType = "couple";
+          }
+
+          let xPosition = seatNumber * seatSpacing;
+
+          for (const aisleAfter of seatLayout.aisleAfterColumns) {
+            if (seatNumber > aisleAfter) {
+              xPosition += 20;
+            }
+          }
+
+          const yPosition = rowIndex * rowSpacing;
+
+          seatsToCreate.push({
+            theater: showtime.theater._id,
+            branch: showtime.branch,
+            row: rowLabel,
+            number: seatNumber,
+            type: seatType,
+            position: {
+              x: xPosition,
+              y: yPosition,
+            },
+            isActive: true,
+          });
+        }
+      }
+
+      if (seatsToCreate.length > 0) {
+        await Seat.insertMany(seatsToCreate);
+        await updateAdjacentSeats(showtime.theater._id, showtime.branch);
+        console.log("✅ Auto-generated", seatsToCreate.length, "seats");
+        
+        // Fetch lại seats sau khi tạo
+        seats = await Seat.find({
+          theater: showtime.theater._id,
+          branch: showtime.branch,
+          isActive: true,
+        }).sort({ row: 1, number: 1 });
+      }
+    }
+  }
+
+  if (seats.length === 0) {
+    console.log("⚠️ No seats found for theater:", showtime.theater._id, "branch:", showtime.branch);
+    
+    // Kiểm tra có seats nào cho theater này không (bất kể branch)
+    const allSeatsForTheater = await Seat.find({
+      theater: showtime.theater._id,
+      isActive: true,
+    });
+    console.log("🔍 Total seats for theater (all branches):", allSeatsForTheater.length);
+    
+    // Kiểm tra có seats nào cho branch này không (bất kể theater)
+    const allSeatsForBranch = await Seat.find({
+      branch: showtime.branch,
+      isActive: true,
+    });
+    console.log("🔍 Total seats for branch (all theaters):", allSeatsForBranch.length);
+  }
+
+  // Kiểm tra xem đã có seat statuses chưa
+  let seatStatuses = await SeatStatus.find({
     showtime: showtimeId,
   }).populate("seat");
+
+  console.log("📊 Existing seat statuses:", seatStatuses.length);
+
+  // Nếu chưa có seat statuses và có seats, tự động tạo
+  if (seatStatuses.length === 0 && seats.length > 0) {
+    console.log("🔄 Creating seat statuses for", seats.length, "seats");
+    const statusesToCreate = seats.map((seat) => ({
+      showtime: showtimeId,
+      seat: seat._id,
+      status: "available",
+      price: getPriceForSeatType(seat.type, showtime.price),
+    }));
+
+    await SeatStatus.insertMany(statusesToCreate);
+    
+    // Fetch lại seat statuses sau khi tạo
+    seatStatuses = await SeatStatus.find({
+      showtime: showtimeId,
+    }).populate("seat");
+    console.log("✅ Created", seatStatuses.length, "seat statuses");
+  }
 
   const seatAvailabilityMap = {};
   seatStatuses.forEach((status) => {
@@ -344,6 +474,7 @@ const getSeatAvailability = asyncHandler(async (req, res) => {
     };
   });
 
+  console.log("🎯 Returning", seatsWithAvailability.length, "seats with availability");
   res.json(seatsWithAvailability);
 });
 
@@ -386,6 +517,97 @@ const initializeSeatStatusesForShowtime = asyncHandler(async (req, res) => {
   });
 });
 
+const generateSeatsFromLayoutByTheater = asyncHandler(async (req, res) => {
+  const { theaterId } = req.params;
+  const { branchId } = req.query;
+
+  if (!branchId) {
+    res.status(400);
+    throw new Error("Branch ID is required");
+  }
+
+  const theater = await Theater.findById(theaterId);
+  if (!theater) {
+    res.status(404);
+    throw new Error("Theater not found");
+  }
+
+  if (!theater.seatLayout) {
+    res.status(400);
+    throw new Error("Theater does not have a seat layout");
+  }
+
+  const seatLayout = await SeatLayout.findById(theater.seatLayout);
+  if (!seatLayout) {
+    res.status(404);
+    throw new Error("Seat layout not found");
+  }
+
+  // Xóa seats cũ nếu có
+  await Seat.deleteMany({
+    theater: theaterId,
+    branch: branchId,
+  });
+
+  const seats = [];
+  const seatSpacing = 40;
+  const rowSpacing = 50;
+
+  for (let rowIndex = 0; rowIndex < seatLayout.rows; rowIndex++) {
+    const rowLabel = seatLayout.rowLabels[rowIndex] || String.fromCharCode(65 + rowIndex);
+    const isVipRow = seatLayout.vipRows.includes(rowLabel);
+
+    for (let seatNumber = 1; seatNumber <= seatLayout.seatsPerRow; seatNumber++) {
+      const isDisabled = seatLayout.disabledSeats.some(
+        (disabled) => disabled.row === rowLabel && disabled.number === seatNumber
+      );
+
+      if (isDisabled) continue;
+
+      let seatType = isVipRow ? "vip" : "standard";
+
+      const coupleConfig = seatLayout.coupleSeats.find(
+        (couple) => couple.row === rowLabel && seatNumber >= couple.startSeat && seatNumber <= couple.endSeat
+      );
+      if (coupleConfig) {
+        seatType = "couple";
+      }
+
+      let xPosition = seatNumber * seatSpacing;
+
+      for (const aisleAfter of seatLayout.aisleAfterColumns) {
+        if (seatNumber > aisleAfter) {
+          xPosition += 20;
+        }
+      }
+
+      const yPosition = rowIndex * rowSpacing;
+
+      seats.push({
+        theater: theaterId,
+        branch: branchId,
+        row: rowLabel,
+        number: seatNumber,
+        type: seatType,
+        position: {
+          x: xPosition,
+          y: yPosition,
+        },
+        isActive: true,
+      });
+    }
+  }
+
+  const createdSeats = await Seat.insertMany(seats);
+  await updateAdjacentSeats(theaterId, branchId);
+
+  res.status(201).json({
+    message: "Seats generated successfully from theater layout",
+    count: createdSeats.length,
+    seats: createdSeats,
+  });
+});
+
 export {
   createSeatLayout,
   getSeatLayouts,
@@ -396,4 +618,5 @@ export {
   getSeatsByTheater,
   getSeatAvailability,
   initializeSeatStatusesForShowtime,
+  generateSeatsFromLayoutByTheater,
 };

@@ -110,7 +110,6 @@ const AdminBranches = () => {
       id: theater._id,
       name: theater.name,
       type: theater.type,
-      capacity: theater.capacity,
     }))
   }
 
@@ -523,7 +522,7 @@ const AdminBranches = () => {
                                     <div>
                                       <div className="font-medium">{theater.name}</div>
                                       <div className="text-sm text-gray-500">
-                                        {theater.type || "Standard"} • {theater.capacity || "N/A"} seats
+                                        {theater.type || "Standard"}
                                       </div>
                                     </div>
                                   </div>

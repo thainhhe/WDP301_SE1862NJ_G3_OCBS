@@ -52,14 +52,6 @@ const showtimeSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    seatsAvailable: {
-      type: Number,
-      required: true,
-    },
-    seatsBooked: {
-      type: Number,
-      default: 0,
-    },
   },
   {
     timestamps: true,

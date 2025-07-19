@@ -14,7 +14,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
     standardPrice: "",
     vipPrice: "",
     couplePrice: "",
-    seatsAvailable: "",
     isFirstShow: false,
     isLastShow: false,
   })
@@ -145,12 +144,12 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
 
           // Clear theater selection if current theater is not in the new list
           if (formData.theaterId && !theatersList.find((t) => t._id === formData.theaterId)) {
-            setFormData((prev) => ({ ...prev, theaterId: "", seatsAvailable: "" }))
+            setFormData((prev) => ({ ...prev, theaterId: "" }))
           }
         } else {
           console.log("ℹ️ No theaters found for branch:", formData.branchId)
           setTheaters([])
-          setFormData((prev) => ({ ...prev, theaterId: "", seatsAvailable: "" }))
+          setFormData((prev) => ({ ...prev, theaterId: "" }))
         }
       } catch (error) {
         console.error("❌ Error loading theaters:", error)
@@ -159,7 +158,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
           theaters: error.message || "Failed to load theaters for this branch",
         }))
         setTheaters([])
-        setFormData((prev) => ({ ...prev, theaterId: "", seatsAvailable: "" }))
+        setFormData((prev) => ({ ...prev, theaterId: "" }))
       } finally {
         setLoadingStates((prev) => ({ ...prev, theaters: false }))
       }
@@ -181,7 +180,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
         standardPrice: showtime.price?.standard || "",
         vipPrice: showtime.price?.vip || "",
         couplePrice: showtime.price?.couple || "",
-        seatsAvailable: showtime.seatsAvailable || "",
         isFirstShow: showtime.isFirstShow || false,
         isLastShow: showtime.isLastShow || false,
       })
@@ -197,20 +195,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
       }))
     }
   }, [showtime])
-
-  // Auto-fill seats when theater is selected
-  useEffect(() => {
-    if (formData.theaterId && !showtime) {
-      const selectedTheater = theaters.find((t) => t._id === formData.theaterId)
-      if (selectedTheater && selectedTheater.capacity) {
-        setFormData((prev) => ({
-          ...prev,
-          seatsAvailable: selectedTheater.capacity.toString(),
-        }))
-        console.log(`🎭 Auto-filled seats: ${selectedTheater.capacity} for theater: ${selectedTheater.name}`)
-      }
-    }
-  }, [formData.theaterId, theaters, showtime])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -238,7 +222,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
     if (!formData.date) newErrors.date = "Date is required"
     if (!formData.time) newErrors.time = "Time is required"
     if (!formData.standardPrice) newErrors.standardPrice = "Standard price is required"
-    if (!formData.seatsAvailable) newErrors.seatsAvailable = "Available seats is required"
 
     // Validation rules
     if (formData.standardPrice && (isNaN(formData.standardPrice) || Number.parseFloat(formData.standardPrice) <= 0)) {
@@ -251,10 +234,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
 
     if (formData.couplePrice && (isNaN(formData.couplePrice) || Number.parseFloat(formData.couplePrice) <= 0)) {
       newErrors.couplePrice = "Couple price must be a positive number"
-    }
-
-    if (formData.seatsAvailable && (isNaN(formData.seatsAvailable) || Number.parseInt(formData.seatsAvailable) <= 0)) {
-      newErrors.seatsAvailable = "Available seats must be a positive number"
     }
 
     // Date validation
@@ -299,7 +278,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
         standardPrice: Number.parseFloat(formData.standardPrice),
         vipPrice: formData.vipPrice ? Number.parseFloat(formData.vipPrice) : 0,
         couplePrice: formData.couplePrice ? Number.parseFloat(formData.couplePrice) : 0,
-        seatsAvailable: Number.parseInt(formData.seatsAvailable),
         duration: selectedMovie?.duration || 120,
         movieTitle: selectedMovie?.title || "",
       }
@@ -495,7 +473,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                         </option>
                         {theaters.map((theater) => (
                             <option key={theater._id} value={theater._id}>
-                              {theater.name} ({theater.capacity} seats)
+                              {theater.name}
                             </option>
                         ))}
                       </select>
@@ -550,37 +528,6 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                       ))}
                     </select>
                     {errors.time && <ErrorMessage message={errors.time} />}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Available Seats <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="number"
-                        name="seatsAvailable"
-                        value={formData.seatsAvailable}
-                        onChange={handleInputChange}
-                        placeholder="150"
-                        min="1"
-                        readOnly={!!getSelectedTheater()}
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
-                            errors.seatsAvailable ? "border-red-500 bg-red-50" : "border-gray-300"
-                        } ${getSelectedTheater() ? "bg-gray-100" : ""}`}
-                    />
-                    {errors.seatsAvailable && <ErrorMessage message={errors.seatsAvailable} />}
-                    {getSelectedTheater() && (
-                        <p className="mt-1 text-xs text-green-600 flex items-center">
-                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                            />
-                          </svg>
-                          Auto-filled from theater capacity
-                        </p>
-                    )}
                   </div>
                 </div>
               </div>

@@ -19,8 +19,6 @@ export const showtimeService = {
           vip: Number(showtimeData.vipPrice || 0),
           couple: Number(showtimeData.couplePrice || 0),
         },
-        seatsAvailable: Number(showtimeData.seatsAvailable),
-        seatsBooked: 0,
         isFirstShow: showtimeData.isFirstShow || false,
         isLastShow: showtimeData.isLastShow || false,
       }
@@ -103,7 +101,6 @@ export const showtimeService = {
           vip: Number(showtimeData.vipPrice || 0),
           couple: Number(showtimeData.couplePrice || 0),
         },
-        seatsAvailable: Number(showtimeData.seatsAvailable),
         isFirstShow: showtimeData.isFirstShow || false,
         isLastShow: showtimeData.isLastShow || false,
       }
@@ -227,7 +224,6 @@ export const showtimeService = {
     if (!data.date) errors.date = "Date is required"
     if (!data.time) errors.time = "Time is required"
     if (!data.standardPrice || data.standardPrice <= 0) errors.standardPrice = "Valid standard price is required"
-    if (!data.seatsAvailable || data.seatsAvailable <= 0) errors.seatsAvailable = "Valid seat count is required"
 
     // Date validation
     if (data.date) {
