@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { showtimeService, branchService } from "../services/showtimeService"
 import { movieService } from "../services/movieService"
+import { formatVND } from "../utils/currencyUtils"
 
 const ShowtimesPage = () => {
   const [searchParams] = useSearchParams()
@@ -52,13 +53,17 @@ const ShowtimesPage = () => {
       date.setDate(today.getDate() + i)
       days.push({
         date: date.toISOString().split("T")[0],
-        label:
-            i === 0
-                ? "Today"
-                : i === 1
-                    ? "Tomorrow"
-                    : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
-        fullLabel: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+        label: date.toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }),
+        fullLabel: date.toLocaleDateString("vi-VN", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        }),
         isToday: i === 0,
         isTomorrow: i === 1,
       })
@@ -295,12 +300,7 @@ const ShowtimesPage = () => {
     })
   }
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price)
-  }
+  const formatPrice = formatVND
 
   const getAvailabilityColor = (available, total) => {
     if (total === 0) return "text-gray-600"
@@ -346,19 +346,18 @@ const ShowtimesPage = () => {
 
   const getSelectedDateInfo = () => {
     const selectedDateObj = new Date(selectedDate)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    if (selectedDateObj.toDateString() === today.toDateString()) {
-      return { label: "Today", fullLabel: "Today's Showtimes" }
-    } else if (selectedDateObj.toDateString() === tomorrow.toDateString()) {
-      return { label: "Tomorrow", fullLabel: "Tomorrow's Showtimes" }
-    } else {
-      return {
-        label: selectedDateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
-        fullLabel: selectedDateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
-      }
+    return {
+      label: selectedDateObj.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }),
+      fullLabel: selectedDateObj.toLocaleDateString("vi-VN", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
     }
   }
 
@@ -502,10 +501,10 @@ const ShowtimesPage = () => {
                 <div className="text-center">
                   <div className="text-lg font-semibold text-gray-900">{selectedDateInfo.fullLabel}</div>
                   <div className="text-sm text-gray-600">
-                    {new Date(selectedDate).toLocaleDateString("en-US", {
+                    {new Date(selectedDate).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
                       year: "numeric",
-                      month: "long",
-                      day: "numeric",
                     })}
                   </div>
                 </div>

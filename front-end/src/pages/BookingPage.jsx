@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { bookingService } from "../services/bookingService";
+import { seatService } from "../services/seatService";
 import { Modal } from "antd";
 import CheckPayment from "../components/booking/CheckPayment";
 
@@ -82,6 +83,21 @@ const BookingPage = () => {
     setShowQRCode(true);
   };
 
+  const handleBackToSeatSelection = async () => {
+    try {
+      // Release the reserved seats
+      const seatIds = booking.seats.map(seat => seat._id);
+      await seatService.releaseReservation(booking.showtime._id, seatIds);
+      
+      // Navigate back to seat selection
+      navigate(`/seat-selection/${booking.showtime._id}`);
+    } catch (error) {
+      console.error("Error releasing seats:", error);
+      // Still navigate back even if release fails
+      navigate(`/seat-selection/${booking.showtime._id}`);
+    }
+  };
+
   const handlePaymentSuccess = useCallback(async () => {
     setPaymentLoading(true);
     setError(null);
@@ -116,10 +132,9 @@ const BookingPage = () => {
       hour12: true,
     });
   const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
+    new Date(dateString).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
       year: "numeric",
     });
   const formatPrice = (price) =>
@@ -166,7 +181,7 @@ const BookingPage = () => {
         <div className="flex items-center justify-between mb-8">
           <Button
             variant="outline"
-            onClick={() => navigate(`/seat-selection/${booking.showtime._id}`)}
+            onClick={handleBackToSeatSelection}
             className="flex items-center"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -250,14 +265,70 @@ const BookingPage = () => {
                 <h4 className="font-medium text-gray-900 mb-3">
                   Booking Summary
                 </h4>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {booking.seats.map((seat, index) => (
-                    <Badge key={index} variant="secondary">
-                      {seat.row}
-                      {seat.number}
-                    </Badge>
-                  ))}
+                
+                {/* Seat Details */}
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Seats:</h5>
+                  <div className="space-y-1">
+                    {booking.seats.map((seat, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>• {seat.row}{seat.number} ({seat.type || 'Standard'})</span>
+                        <span>{formatPrice(seat.price || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                
+                {/* Combo Information */}
+                {booking.combos && booking.combos.length > 0 && (
+                  <div className="mb-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Combos:</h5>
+                    <div className="space-y-2">
+                      {booking.combos.map((comboItem, index) => (
+                        <div key={index} className="border border-gray-200 rounded p-2">
+                          <div className="flex justify-between text-sm font-medium mb-1">
+                            <span>• {comboItem.combo?.name || 'Combo'} x{comboItem.quantity}</span>
+                            <span>{formatPrice(comboItem.price * comboItem.quantity)}</span>
+                          </div>
+                          {comboItem.combo?.items && comboItem.combo.items.length > 0 && (
+                            <div className="text-xs text-gray-600 ml-4">
+                              {comboItem.combo.items.map((item, itemIndex) => (
+                                <div key={itemIndex}>
+                                  - {item.quantity} {item.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Summary Row */}
+                <div className="space-y-2 text-sm font-medium pt-2 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span>Seat Total:</span>
+                    <span>{formatPrice(booking.seats.reduce((sum, seat) => sum + (seat.price || 0), 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Combo Total:</span>
+                    <span>{formatPrice(booking.combos ? booking.combos.reduce((sum, combo) => sum + (combo.price * combo.quantity), 0) : 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>{formatPrice((booking.seats.reduce((sum, seat) => sum + (seat.price || 0), 0)) + 
+                      (booking.combos ? booking.combos.reduce((sum, combo) => sum + (combo.price * combo.quantity), 0) : 0))}</span>
+                  </div>
+                  {booking.voucher && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Voucher: {booking.voucher.code}</span>
+                      <span>-{formatPrice(booking.discountAmount || 0)}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Final Total */}
                 <div className="border-t mt-3 pt-3 flex justify-between font-semibold text-lg">
                   <span>Total:</span>
                   <span className="text-green-600">
@@ -271,9 +342,15 @@ const BookingPage = () => {
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t">
-                <Button variant="outline" onClick={() => navigate(`/profile`)}>
-                  Cancel
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleBackToSeatSelection}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Seat Selection
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate(`/profile`)}>
+                    Cancel
+                  </Button>
+                </div>
                 <Button
                   onClick={handleCheckout}
                   className="bg-green-600 hover:bg-green-700"
@@ -317,31 +394,98 @@ const BookingPage = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Booked At:</span>
-                    <span>{new Date(booking.createdAt).toLocaleString()}</span>
+                    <span>{new Date(booking.createdAt).toLocaleString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}</span>
                   </div>
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-3">Your Seats</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {booking.seats.map((seat, index) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className="justify-center"
-                    >
-                      {seat.row}
-                      {seat.number}
-                    </Badge>
-                  ))}
+                <h4 className="font-medium text-gray-900 mb-3">Booking Details</h4>
+                
+                {/* Seat Details */}
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Seats:</h5>
+                  <div className="space-y-1">
+                    {booking.seats.map((seat, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>• {seat.row}{seat.number} ({seat.type || 'Standard'})</span>
+                        <span>{formatPrice(seat.price || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Combo Information */}
+                {booking.combos && booking.combos.length > 0 && (
+                  <div className="mb-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Combos:</h5>
+                    <div className="space-y-2">
+                      {booking.combos.map((comboItem, index) => (
+                        <div key={index} className="border border-gray-200 rounded p-2">
+                          <div className="flex justify-between text-sm font-medium mb-1">
+                            <span>• {comboItem.combo?.name || 'Combo'} x{comboItem.quantity}</span>
+                            <span>{formatPrice(comboItem.price * comboItem.quantity)}</span>
+                          </div>
+                          {comboItem.combo?.items && comboItem.combo.items.length > 0 && (
+                            <div className="text-xs text-gray-600 ml-4">
+                              {comboItem.combo.items.map((item, itemIndex) => (
+                                <div key={itemIndex}>
+                                  - {item.quantity} {item.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Summary Row */}
+                <div className="space-y-2 text-sm font-medium pt-2 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span>Seat Total:</span>
+                    <span>{formatPrice(booking.seats.reduce((sum, seat) => sum + (seat.price || 0), 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Combo Total:</span>
+                    <span>{formatPrice(booking.combos ? booking.combos.reduce((sum, combo) => sum + (combo.price * combo.quantity), 0) : 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>{formatPrice((booking.seats.reduce((sum, seat) => sum + (seat.price || 0), 0)) + 
+                      (booking.combos ? booking.combos.reduce((sum, combo) => sum + (combo.price * combo.quantity), 0) : 0))}</span>
+                  </div>
+                  {booking.voucher && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Voucher: {booking.voucher.code}</span>
+                      <span>-{formatPrice(booking.discountAmount || 0)}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Final Total */}
+                <div className="border-t mt-3 pt-3 flex justify-between font-semibold text-lg">
+                  <span>Total Paid:</span>
+                  <span className="text-green-600">
+                    {formatPrice(booking.totalAmount)}
+                  </span>
                 </div>
               </div>
               <div className="text-center pt-4">
                 <Button onClick={() => navigate("/profile")} className="mr-4">
                   View My Bookings
                 </Button>
-                <Button variant="outline" onClick={() => navigate("/")}>
+                <Button variant="outline" onClick={() => navigate("/")} className="mr-4">
                   Back to Home
+                </Button>
+                <Button variant="outline" onClick={() => navigate(`/seat-selection/${booking.showtime._id}`)}>
+                  Book More Tickets
                 </Button>
               </div>
             </CardContent>

@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 const summaryData = [
     { title: 'Total Users', value: '1,280', icon: <PeopleAltIcon sx={{ fontSize: 40, color: 'primary.main' }} /> },
     { title: 'Total Movies', value: '75', icon: <TheatersIcon sx={{ fontSize: 40, color: 'primary.main' }} /> },
-    { title: 'Monthly Revenue', value: '$7,500', icon: <AttachMoneyIcon sx={{ fontSize: 40, color: 'primary.main' }} /> },
+    { title: 'Monthly Revenue', value: '175,000,000 VND', icon: <AttachMoneyIcon sx={{ fontSize: 40, color: 'primary.main' }} /> },
 ];
 
 const chartData = [

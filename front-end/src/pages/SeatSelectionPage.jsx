@@ -14,6 +14,7 @@ import { bookingService } from "../services/bookingService";
 import { seatService } from "../services/seatService";
 import { useAuth } from "../context/AuthContext";
 import socketService from "../services/socketService";
+import { formatVND } from "../utils/currencyUtils";
 
 const SeatSelectionPage = () => {
   const { showtimeId } = useParams();
@@ -141,30 +142,14 @@ const SeatSelectionPage = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price);
-  };
+  const formatPrice = formatVND;
 
   const getImageUrl = (posterPath) => {
     if (!posterPath) return "/placeholder.svg?height=400&width=300";

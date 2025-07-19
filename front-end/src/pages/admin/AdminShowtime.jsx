@@ -34,6 +34,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ShowtimeForm from "../../components/admin/ShowtimeForm"
 import { showtimeService, movieService } from "../../services/showtimeService"
+import { formatVND } from "../../utils/currencyUtils"
 
 const AdminShowtimes = () => {
   const [showtimes, setShowtimes] = useState([])
@@ -322,21 +323,16 @@ const AdminShowtimes = () => {
 
   const formatDateTime = (dateTimeString) => {
     const date = new Date(dateTimeString)
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
+    return date.toLocaleString("vi-VN", {
       day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     })
   }
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price)
-  }
+  const formatPrice = formatVND
 
   // Get unique branches and theaters for filters
   const uniqueBranches = [...new Set(showtimes.map((s) => s.branch?.name).filter(Boolean))]

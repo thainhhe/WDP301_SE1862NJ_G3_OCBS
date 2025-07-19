@@ -129,7 +129,13 @@ const EmployeeBookingsPage = () => {
                 <TableRow key={b._id}>
                   <TableCell>{b._id}</TableCell>
                   <TableCell>{b.showtime?.movie?.title || ""}</TableCell>
-                  <TableCell>{b.showtime?.startTime ? new Date(b.showtime.startTime).toLocaleString() : ""}</TableCell>
+                  <TableCell>{b.showtime?.startTime ? new Date(b.showtime.startTime).toLocaleString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }) : ""}</TableCell>
                   <TableCell>{b.seats?.map(s => s.row + s.number).join(", ")}</TableCell>
                   <TableCell>{b.customerInfo?.name || b.user?.name || ""}</TableCell>
                   <TableCell>

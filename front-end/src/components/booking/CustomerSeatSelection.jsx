@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatVND } from "@/utils/currencyUtils";
 import {
   Users,
   Crown,
@@ -346,12 +347,7 @@ const CustomerSeatSelection = ({
     }, 0);
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price);
-  };
+  const formatPrice = formatVND;
 
   const groupSeatsByRow = () => {
     const grouped = {};

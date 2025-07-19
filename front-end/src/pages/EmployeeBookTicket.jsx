@@ -143,7 +143,13 @@ const EmployeeBookTicket = () => {
         <Box>
           <Typography variant="h6" mb={2}>Xác nhận thông tin đặt vé</Typography>
           <Typography>Phim: {selectedMovie?.title}</Typography>
-          <Typography>Suất chiếu: {selectedShowtime?.startTime && new Date(selectedShowtime.startTime).toLocaleString()}</Typography>
+          <Typography>Suất chiếu: {selectedShowtime?.startTime && new Date(selectedShowtime.startTime).toLocaleString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}</Typography>
           <Typography>Ghế: {selectedSeats.map(s => s.name || `${s.row}${s.number}`).join(", ")}</Typography>
           <Typography>Combo: {selectedCombos.length > 0 ? selectedCombos.map(c => c.comboName || c.combo).join(", ") : "Không"}</Typography>
           <Typography>Voucher: {voucher?.code || "Không"}</Typography>

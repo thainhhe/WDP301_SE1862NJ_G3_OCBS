@@ -548,17 +548,17 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Standard Price ($) <span className="text-red-500">*</span>
+                      Standard Price (VND) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₫</span>
                       <input
                           type="number"
                           name="standardPrice"
                           value={formData.standardPrice}
                           onChange={handleInputChange}
-                          placeholder="12.50"
-                          step="0.01"
+                          placeholder="125000"
+                          step="1000"
                           min="0"
                           className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
                               errors.standardPrice ? "border-red-500 bg-red-50" : "border-gray-300"
@@ -569,16 +569,16 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">VIP Price ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">VIP Price (VND)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₫</span>
                       <input
                           type="number"
                           name="vipPrice"
                           value={formData.vipPrice}
                           onChange={handleInputChange}
-                          placeholder="18.75"
-                          step="0.01"
+                          placeholder="187500"
+                          step="1000"
                           min="0"
                           className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
                               errors.vipPrice ? "border-red-500 bg-red-50" : "border-gray-300"
@@ -589,16 +589,16 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Couple Price ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Couple Price (VND)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₫</span>
                       <input
                           type="number"
                           name="couplePrice"
                           value={formData.couplePrice}
                           onChange={handleInputChange}
-                          placeholder="27.50"
-                          step="0.01"
+                          placeholder="275000"
+                          step="1000"
                           min="0"
                           className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
                               errors.couplePrice ? "border-red-500 bg-red-50" : "border-gray-300"

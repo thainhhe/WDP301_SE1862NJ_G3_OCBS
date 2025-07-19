@@ -295,10 +295,22 @@ const ProfilePage = () => {
                           )}
                         </td>
                         <td className="px-3 py-2">{b.showtime?.movie?.title || ''}</td>
-                        <td className="px-3 py-2">{b.showtime?.startTime ? new Date(b.showtime.startTime).toLocaleString() : ''}</td>
+                        <td className="px-3 py-2">{b.showtime?.startTime ? new Date(b.showtime.startTime).toLocaleString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }) : ''}</td>
                         <td className="px-3 py-2">{b.seats?.map(s => s.row + s.number).join(', ')}</td>
                         <td className="px-3 py-2">{b.checkedIn ? 'Đã check-in' : 'Chưa check-in'}</td>
-                        <td className="px-3 py-2">{b.createdAt ? new Date(b.createdAt).toLocaleString() : ''}</td>
+                        <td className="px-3 py-2">{b.createdAt ? new Date(b.createdAt).toLocaleString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }) : ''}</td>
                       </tr>
                     ))}
                   </tbody>

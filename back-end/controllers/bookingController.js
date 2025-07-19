@@ -202,7 +202,12 @@ const getBookingById = asyncHandler(async (req, res) => {
           { path: "branch", select: "name location" },
         ],
       })
-      .populate("user", "name email");
+      .populate("user", "name email")
+      .populate("voucher")
+      .populate({
+        path: "combos.combo",
+        select: "name items"
+      });
 
   if (!booking) {
     res.status(404);
