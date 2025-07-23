@@ -9,7 +9,8 @@ import {
   getSeatsByTheater,
   getSeatAvailability,
   initializeSeatStatusesForShowtime,
-} from "../controllers/seatController.js";
+  generateSeatsFromLayoutByTheater,
+} from "../controllers/seatLayoutController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router
 
 // Seat generation
 router.post("/generate", protect, admin, generateSeatsFromLayout);
+router.post("/generate-theater/:theaterId", protect, admin, generateSeatsFromLayoutByTheater);
 
 // Seat queries
 router.get("/theater/:theaterId", protect, getSeatsByTheater);

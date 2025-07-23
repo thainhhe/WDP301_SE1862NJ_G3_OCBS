@@ -244,7 +244,11 @@ const MovieDetails = () => {
                     Ngày phát hành
                   </span>
                   <p className="text-gray-900">
-                    {new Date(movie.releaseDate).toLocaleDateString()}
+                    {new Date(movie.releaseDate).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
                 <div>
@@ -280,7 +284,13 @@ const MovieDetails = () => {
                   <div className="space-y-2">
                     {showtimes.slice(0, 3).map((showtime, index) => (
                       <div key={index} className="text-sm text-gray-600">
-                        {new Date(showtime.startTime).toLocaleString()}
+                        {new Date(showtime.startTime).toLocaleString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </div>
                     ))}
                     {showtimes.length > 3 && (

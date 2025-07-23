@@ -35,8 +35,9 @@ import {
   Monitor,
 } from "lucide-react";
 import SeatLayoutEditor from "../../components/admin/SeatLayoutEditor";
-import { seatService, theaterService } from "../../services/seatService";
-import { branchService } from "../../services/branchService";
+import { seatService } from "@services/seatService.js";
+import { branchService } from "@services/branchService.js";
+import { theaterService } from "@services/theaterService.js";
 
 const SeatLayoutManagement = () => {
   const [layouts, setLayouts] = useState([]);

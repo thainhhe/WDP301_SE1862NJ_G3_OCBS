@@ -1,29 +1,12 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback } from "react";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Search,
-  Filter,
-  MapPin,
-  Clock,
-  Film,
-  AlertCircle,
-  Building,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from "react"
+import { Plus, Edit, Trash2, MapPin, Clock, Building, AlertCircle, Phone, Mail, Eye, Theater } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -31,561 +14,372 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import DataTable from "@/components/datatable/DataTable"; // Assuming you have this component
-import TableToolbar from "@/components/datatable/TableToolbar"; // Assuming you have this component
-import { branchService } from "../../services/branchService"; // Import branchService
-
-const BranchForm = ({ branch, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    location: { address: "", city: "" },
-    contact: { phone: "", email: "" },
-    operatingHours: { open: "09:00", close: "23:00" },
-    facilities: [],
-    image: "", // Placeholder for image URL/upload
-    isActive: true,
-  });
-  const [newFacility, setNewFacility] = useState("");
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (branch) {
-      setFormData({
-        name: branch.name || "",
-        location: branch.location || { address: "", city: "" },
-        contact: branch.contact || { phone: "", email: "" },
-        operatingHours: branch.operatingHours || {
-          open: "09:00",
-          close: "23:00",
-        },
-        facilities: branch.facilities || [],
-        image: branch.image || "",
-        isActive: branch.isActive !== undefined ? branch.isActive : true,
-      });
-    }
-  }, [branch]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleCheckboxChange = (e) => {
-    setFormData((prev) => ({ ...prev, isActive: e.target.checked }));
-  };
-
-  const handleAddFacility = () => {
-    if (
-      newFacility.trim() &&
-      !formData.facilities.includes(newFacility.trim())
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        facilities: [...prev.facilities, newFacility.trim()],
-      }));
-      setNewFacility("");
-    }
-  };
-
-  const handleRemoveFacility = (facilityToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      facilities: prev.facilities.filter((f) => f !== facilityToRemove),
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Branch name is required";
-    if (!formData.location.city.trim())
-      newErrors["location.city"] = "City is required";
-    if (!formData.location.address.trim())
-      newErrors["location.address"] = "Address is required";
-    if (!formData.contact.phone.trim())
-      newErrors["contact.phone"] = "Phone is required";
-    if (!formData.contact.email.trim())
-      newErrors["contact.email"] = "Email is required";
-    if (!/^\S+@\S+\.\S+$/.test(formData.contact.email))
-      newErrors["contact.email"] = "Invalid email format";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
-    try {
-      await onSubmit(formData);
-      onCancel(); // Close form after submission
-    } catch (err) {
-      console.error("Failed to save branch:", err);
-      // Handle error, e.g., show a toast message
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Name</label>
-        <Input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className="mt-1 block w-full"
-        />
-        {errors.name && (
-          <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            City
-          </label>
-          <Input
-            type="text"
-            name="location.city"
-            value={formData.location.city}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-          {errors["location.city"] && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors["location.city"]}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Address
-          </label>
-          <Input
-            type="text"
-            name="location.address"
-            value={formData.location.address}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-          {errors["location.address"] && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors["location.address"]}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Phone
-          </label>
-          <Input
-            type="text"
-            name="contact.phone"
-            value={formData.contact.phone}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-          {errors["contact.phone"] && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors["contact.phone"]}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <Input
-            type="email"
-            name="contact.email"
-            value={formData.contact.email}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-          {errors["contact.email"] && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors["contact.email"]}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Opening Time
-          </label>
-          <Input
-            type="time"
-            name="operatingHours.open"
-            value={formData.operatingHours.open}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Closing Time
-          </label>
-          <Input
-            type="time"
-            name="operatingHours.close"
-            value={formData.operatingHours.close}
-            onChange={handleChange}
-            className="mt-1 block w-full"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Facilities
-        </label>
-        <div className="flex space-x-2 mt-1">
-          <Input
-            type="text"
-            value={newFacility}
-            onChange={(e) => setNewFacility(e.target.value)}
-            placeholder="Add facility..."
-            className="flex-grow"
-          />
-          <Button
-            type="button"
-            onClick={handleAddFacility}
-            variant="outline"
-            size="sm"
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {formData.facilities.map((facility, index) => (
-            <Badge key={index} className="flex items-center space-x-1">
-              <span>{facility}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveFacility(facility)}
-                className="ml-1 text-red-400 hover:text-red-600"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Image URL
-        </label>
-        <Input
-          type="text"
-          name="image"
-          value={formData.image}
-          onChange={handleChange}
-          className="mt-1 block w-full"
-          placeholder="e.g., /uploads/branches/branch-image.jpg"
-        />
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="isActive"
-          checked={formData.isActive}
-          onChange={handleCheckboxChange}
-          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-        />
-        <label className="ml-2 block text-sm text-gray-900">Active</label>
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="button" onClick={onCancel} variant="outline">
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={loading}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          {loading ? "Saving..." : branch ? "Update Branch" : "Create Branch"}
-        </Button>
-      </div>
-    </form>
-  );
-};
+} from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { DataTable } from "@/components/ui/data-table"
+import BranchForm from "@/components/admin/BranchForm"
+import ConfirmDialog from "@/components/ui/ConfirmDialog"
+import { branchService } from "../../services/branchService"
+import { theaterService } from "../../services/theaterService"
 
 const AdminBranches = () => {
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [editingBranch, setEditingBranch] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [branchToDelete, setBranchToDelete] = useState(null);
+  const [branches, setBranches] = useState([])
+  const [theaters, setTheaters] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showFormModal, setShowFormModal] = useState(false)
+  const [editingBranch, setEditingBranch] = useState(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [branchToDelete, setBranchToDelete] = useState(null)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewingBranch, setViewingBranch] = useState(null)
 
   const [filters, setFilters] = useState({
     search: "",
-    isActive: "all", // "true", "false", "all"
+    isActive: "all",
     city: "all",
-  });
-  const [availableCities, setAvailableCities] = useState([]);
+  })
+  const [availableCities, setAvailableCities] = useState([])
 
   const fetchBranches = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
+      // Get all branches without backend filtering
       const params = {
-        name: filters.search,
+        name: filters.search || undefined,
         location_city: filters.city !== "all" ? filters.city : undefined,
-        isActive:
-          filters.isActive !== "all" ? filters.isActive === "true" : undefined,
-      };
-      const data = await branchService.getBranches(params);
-      setBranches(data);
+      }
+
+      console.log("Fetching branches with params:", params)
+      const data = await branchService.getBranches(params)
+      console.log("Received branches data:", data)
+
+      // Apply client-side filtering for isActive
+      let filteredData = data
+      if (filters.isActive !== "all") {
+        const isActiveFilter = filters.isActive === "true"
+        filteredData = data.filter((branch) => {
+          console.log(`Branch ${branch.name}: isActive = ${branch.isActive}, filter = ${isActiveFilter}`)
+          return branch.isActive === isActiveFilter
+        })
+      }
+
+      console.log("Filtered branches:", filteredData)
+      setBranches(filteredData)
 
       // Extract unique cities for filter dropdown
-      const cities = [
-        ...new Set(data.map((b) => b.location.city).filter(Boolean)),
-      ];
-      setAvailableCities(["all", ...cities]);
+      const cities = [...new Set(data.map((b) => b.location?.city).filter(Boolean))]
+      setAvailableCities(cities)
     } catch (err) {
-      console.error("Failed to fetch branches:", err);
-      setError("Failed to load branches. Please try again.");
+      console.error("Failed to fetch branches:", err)
+      setError("Failed to load branches. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [filters]);
+  }, [filters])
+
+  const fetchTheaters = useCallback(async () => {
+    try {
+      const data = await theaterService.getTheaters()
+      console.log("Fetched theaters for branch display:", data)
+      setTheaters(data)
+    } catch (err) {
+      console.error("Failed to fetch theaters:", err)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchBranches();
-  }, [fetchBranches]);
+    fetchBranches()
+    fetchTheaters()
+  }, [fetchBranches, fetchTheaters])
+
+  const getTheaterNames = (theaterIds) => {
+    if (!theaterIds || theaterIds.length === 0) {
+      console.log("No theater IDs provided")
+      return []
+    }
+
+    console.log("Getting theater names for IDs:", theaterIds)
+    console.log("Available theaters:", theaters)
+
+    const matchedTheaters = theaters.filter((theater) => theaterIds.includes(theater._id))
+    console.log("Matched theaters:", matchedTheaters)
+
+    return matchedTheaters.map((theater) => ({
+      id: theater._id,
+      name: theater.name,
+      type: theater.type,
+    }))
+  }
 
   const handleCreateBranch = () => {
-    setEditingBranch(null);
-    setShowFormModal(true);
-  };
+    setEditingBranch(null)
+    setShowFormModal(true)
+  }
 
   const handleEditBranch = (branch) => {
-    setEditingBranch(branch);
-    setShowFormModal(true);
-  };
+    setEditingBranch(branch)
+    setShowFormModal(true)
+  }
+
+  const handleViewBranch = (branch) => {
+    setViewingBranch(branch)
+    setShowViewModal(true)
+  }
 
   const handleDeleteBranch = (branch) => {
-    setBranchToDelete(branch);
-    setShowDeleteDialog(true);
-  };
+    console.log("Delete button clicked for branch:", branch.name)
+    setBranchToDelete(branch)
+    setShowDeleteDialog(true)
+  }
 
   const handleFormSubmit = async (formData) => {
     try {
       if (editingBranch) {
-        await branchService.updateBranch(editingBranch._id, formData);
-        // Show success toast
+        await branchService.updateBranch(editingBranch._id, formData)
       } else {
-        await branchService.createBranch(formData);
-        // Show success toast
+        await branchService.createBranch(formData)
       }
-      fetchBranches(); // Re-fetch data to update list
+      setShowFormModal(false)
+      fetchBranches()
     } catch (err) {
-      console.error("Error saving branch:", err);
-      setError(
-        `Failed to save branch: ${err.response?.data?.message || err.message}`
-      );
+      console.error("Error saving branch:", err)
+      setError(`Failed to save branch: ${err.response?.data?.message || err.message}`)
     }
-  };
+  }
 
   const confirmDeleteBranch = async () => {
-    if (!branchToDelete) return;
-    setLoading(true);
-    setError(null);
+    if (!branchToDelete) return
     try {
-      await branchService.deleteBranch(branchToDelete._id);
-      fetchBranches(); // Re-fetch data
-      // Show success toast
+      console.log("Deleting branch:", branchToDelete.name)
+      await branchService.deleteBranch(branchToDelete._id)
+      setShowDeleteDialog(false)
+      setBranchToDelete(null)
+      fetchBranches()
     } catch (err) {
-      console.error("Error deleting branch:", err);
-      setError(
-        `Failed to delete branch: ${err.response?.data?.message || err.message}`
-      );
-    } finally {
-      setLoading(false);
-      setShowDeleteDialog(false);
-      setBranchToDelete(null);
+      console.error("Error deleting branch:", err)
+      setError(`Failed to delete branch: ${err.response?.data?.message || err.message}`)
+      setShowDeleteDialog(false)
+      setBranchToDelete(null)
     }
-  };
+  }
+
+  const handleCancelDelete = () => {
+    console.log("Delete cancelled")
+    setShowDeleteDialog(false)
+    setBranchToDelete(null)
+  }
 
   const columns = [
     {
-      header: "Name",
       accessorKey: "name",
-      cell: (info) => (
-        <div className="font-medium text-red-600">{info.getValue()}</div>
-      ),
+      header: "Branch Name",
+      cell: ({ row }) => <div className="font-medium text-red-600">{row.getValue("name")}</div>,
     },
     {
+      accessorKey: "location",
       header: "Location",
-      accessorKey: "location.city",
-      cell: (info) => (
-        <span>
-          {info.row.original.location.address},{" "}
-          {info.row.original.location.city}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const location = row.getValue("location")
+        return (
+            <div className="flex items-center">
+              <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+              <div>
+                <div className="font-medium">{location?.city || "N/A"}</div>
+                <div className="text-sm text-gray-500 max-w-[200px] truncate">{location?.address || "No address"}</div>
+              </div>
+            </div>
+        )
+      },
     },
     {
+      accessorKey: "theaters",
+      header: "Theaters",
+      cell: ({ row }) => {
+        const theaterIds = row.getValue("theaters") || []
+        const theaterDetails = getTheaterNames(theaterIds)
+
+        console.log("Rendering theaters for row:", { theaterIds, theaterDetails })
+
+        return (
+            <div className="flex items-center">
+              <Theater className="w-4 h-4 mr-2 text-gray-400" />
+              <div>
+                {theaterDetails.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {theaterDetails.slice(0, 2).map((theater, index) => (
+                          <Badge key={theater.id} variant="outline" className="text-xs">
+                            {theater.name}
+                          </Badge>
+                      ))}
+                      {theaterDetails.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{theaterDetails.length - 2} more
+                          </Badge>
+                      )}
+                    </div>
+                ) : (
+                    <span className="text-sm text-gray-500">No theaters</span>
+                )}
+                {theaterDetails.length > 0 && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {theaterDetails.length} theater{theaterDetails.length !== 1 ? "s" : ""}
+                    </div>
+                )}
+              </div>
+            </div>
+        )
+      },
+    },
+    {
+      accessorKey: "contact",
       header: "Contact",
-      accessorKey: "contact.phone",
-      cell: (info) => (
-        <span>
-          {info.row.original.contact.phone}
-          <br />
-          {info.row.original.contact.email}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const contact = row.getValue("contact")
+        return (
+            <div className="space-y-1">
+              <div className="flex items-center text-sm">
+                <Phone className="w-3 h-3 mr-1 text-gray-400" />
+                {contact?.phone || "N/A"}
+              </div>
+              <div className="flex items-center text-sm">
+                <Mail className="w-3 h-3 mr-1 text-gray-400" />
+                <span className="max-w-[150px] truncate">{contact?.email || "N/A"}</span>
+              </div>
+            </div>
+        )
+      },
     },
     {
-      header: "Operating Hours",
       accessorKey: "operatingHours",
-      cell: (info) => (
-        <span>
-          {info.row.original.operatingHours.open} -{" "}
-          {info.row.original.operatingHours.close}
-        </span>
-      ),
+      header: "Hours",
+      cell: ({ row }) => {
+        const hours = row.getValue("operatingHours")
+        return (
+            <div className="flex items-center text-sm">
+              <Clock className="w-4 h-4 mr-2 text-gray-400" />
+              {hours?.open || "09:00"} - {hours?.close || "23:00"}
+            </div>
+        )
+      },
     },
     {
-      header: "Facilities",
       accessorKey: "facilities",
-      cell: (info) => (
-        <div className="flex flex-wrap gap-1">
-          {info.getValue().map((f, i) => (
-            <Badge
-              key={i}
-              variant="outline"
-              className="bg-blue-50 text-blue-700"
-            >
-              {f}
-            </Badge>
-          ))}
-        </div>
-      ),
+      header: "Facilities",
+      cell: ({ row }) => {
+        const facilities = row.getValue("facilities") || []
+        return (
+            <div className="flex flex-wrap gap-1">
+              {facilities.slice(0, 2).map((facility, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {facility}
+                  </Badge>
+              ))}
+              {facilities.length > 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{facilities.length - 2} more
+                  </Badge>
+              )}
+            </div>
+        )
+      },
     },
     {
-      header: "Active",
       accessorKey: "isActive",
-      cell: (info) => (
-        <Badge
-          variant={info.getValue() ? "success" : "destructive"}
-          className={
-            info.getValue()
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }
-        >
-          {info.getValue() ? "Yes" : "No"}
-        </Badge>
-      ),
+      header: "Status",
+      cell: ({ row }) => {
+        const isActive = row.getValue("isActive")
+        return (
+            <Badge
+                variant={isActive ? "default" : "secondary"}
+                className={isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
+        )
+      },
     },
     {
-      header: "Actions",
       id: "actions",
-      cell: (info) => (
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEditBranch(info.row.original)}
-          >
-            <Edit className="w-4 h-4 mr-1" /> Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleDeleteBranch(info.row.original)}
-          >
-            <Trash2 className="w-4 h-4 mr-1" /> Delete
-          </Button>
-        </div>
-      ),
+      header: "Actions",
+      cell: ({ row }) => {
+        const branch = row.original
+        return (
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={() => handleViewBranch(branch)}>
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleEditBranch(branch)}>
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDeleteBranch(branch)
+                  }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+        )
+      },
     },
-  ];
+  ]
 
   return (
-    <div className="container mx-auto p-6">
-      <Card className="mb-6 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-3xl font-bold text-gray-800 flex items-center">
-            <Building className="mr-3 h-8 w-8 text-red-600" /> Branch Management
-          </CardTitle>
-          <Button
-            onClick={handleCreateBranch}
-            className="bg-red-600 hover:bg-red-700 text-white flex items-center shadow-md"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add New Branch
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+      <div className="container mx-auto p-6">
+        <Card className="mb-6 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-3xl font-bold text-gray-800 flex items-center">
+              <Building className="mr-3 h-8 w-8 text-red-600" />
+              Branch Management
+            </CardTitle>
+            <Button
+                onClick={handleCreateBranch}
+                className="bg-red-600 hover:bg-red-700 text-white flex items-center shadow-md"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add New Branch
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
 
-          <TableToolbar>
-            <div className="flex-1 flex space-x-2">
-              <Input
-                placeholder="Search branches by name..."
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
-                }
-                className="max-w-sm"
-              />
-              <Select
-                value={filters.city}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, city: value }))
-                }
-              >
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                    placeholder="Search branches by name..."
+                    value={filters.search}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+                    className="max-w-sm"
+                />
+              </div>
+              <Select value={filters.city} onValueChange={(value) => setFilters((prev) => ({ ...prev, city: value }))}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by City" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
                   {availableCities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city === "all" ? "All Cities" : city}
-                    </SelectItem>
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select
-                value={filters.isActive}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, isActive: value }))
-                }
+                  value={filters.isActive}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, isActive: value }))}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by Status" />
@@ -597,88 +391,191 @@ const AdminBranches = () => {
                 </SelectContent>
               </Select>
             </div>
-          </TableToolbar>
 
-          {loading && branches.length === 0 ? (
-            <div className="text-center py-8">Loading branches...</div>
-          ) : branches.length > 0 ? (
-            <DataTable columns={columns} data={branches} />
-          ) : (
-            <Card className="text-center py-10 border-dashed border-2 border-gray-300">
-              <CardContent className="flex flex-col items-center justify-center">
-                <div className="text-gray-500 mb-4">
-                  <Building className="mx-auto h-12 w-12" />
+            {loading && branches.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-500">Loading branches...</p>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No branches found
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  {filters.search ||
-                  filters.isActive !== "all" ||
-                  filters.city !== "all"
-                    ? "Try adjusting your filters to see more results."
-                    : "Get started by adding your first branch."}
-                </p>
-                <Button
-                  onClick={handleCreateBranch}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Branch
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </CardContent>
-      </Card>
+            ) : branches.length > 0 ? (
+                <DataTable columns={columns} data={branches} searchKey="name" searchPlaceholder="Search branches..." />
+            ) : (
+                <Card className="text-center py-10 border-dashed border-2 border-gray-300">
+                  <CardContent className="flex flex-col items-center justify-center">
+                    <div className="text-gray-500 mb-4">
+                      <Building className="mx-auto h-12 w-12" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No branches found</h3>
+                    <p className="text-gray-500 mb-4">
+                      {filters.search || filters.isActive !== "all" || filters.city !== "all"
+                          ? "Try adjusting your filters to see more results."
+                          : "Get started by adding your first branch."}
+                    </p>
+                    <Button onClick={handleCreateBranch} className="bg-red-600 hover:bg-red-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add New Branch
+                    </Button>
+                  </CardContent>
+                </Card>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Form Modal */}
-      <Dialog open={showFormModal} onOpenChange={setShowFormModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingBranch ? "Edit Branch" : "Create New Branch"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingBranch
-                ? "Update details for this branch."
-                : "Fill in the details to create a new branch."}
-            </DialogDescription>
-          </DialogHeader>
-          <BranchForm
-            branch={editingBranch}
-            onSubmit={handleFormSubmit}
-            onCancel={() => setShowFormModal(false)}
-          />
-        </DialogContent>
-      </Dialog>
+        {/* Form Modal */}
+        <Dialog open={showFormModal} onOpenChange={setShowFormModal}>
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingBranch ? "Edit Branch" : "Create New Branch"}</DialogTitle>
+              <DialogDescription>
+                {editingBranch ? "Update details for this branch." : "Fill in the details to create a new branch."}
+              </DialogDescription>
+            </DialogHeader>
+            <BranchForm branch={editingBranch} onSubmit={handleFormSubmit} onCancel={() => setShowFormModal(false)} />
+          </DialogContent>
+        </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Branch</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the branch "{branchToDelete?.name}
-              "? This action cannot be undone and may affect associated theaters
-              and showtimes.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDeleteBranch}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+        {/* View Modal */}
+        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Branch Details</DialogTitle>
+            </DialogHeader>
+            {viewingBranch && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Name</label>
+                      <p className="text-lg font-semibold">{viewingBranch.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Status</label>
+                      <div className="mt-1">
+                        <Badge
+                            variant={viewingBranch.isActive ? "default" : "secondary"}
+                            className={viewingBranch.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}
+                        >
+                          {viewingBranch.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
 
-export default AdminBranches;
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">City</label>
+                      <p>{viewingBranch.location?.city || "N/A"}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Province</label>
+                      <p>{viewingBranch.location?.province || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Address</label>
+                    <p>{viewingBranch.location?.address || "N/A"}</p>
+                  </div>
+
+                  {viewingBranch.location?.coordinates && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Latitude</label>
+                          <p>{viewingBranch.location.coordinates.latitude || "N/A"}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Longitude</label>
+                          <p>{viewingBranch.location.coordinates.longitude || "N/A"}</p>
+                        </div>
+                      </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Phone</label>
+                      <p>{viewingBranch.contact?.phone || "N/A"}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email</label>
+                      <p>{viewingBranch.contact?.email || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Opening Hours</label>
+                      <p>
+                        {viewingBranch.operatingHours?.open || "09:00"} - {viewingBranch.operatingHours?.close || "23:00"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Assigned Theaters */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Assigned Theaters</label>
+                    <div className="mt-2">
+                      {viewingBranch.theaters && viewingBranch.theaters.length > 0 ? (
+                          <div className="space-y-2">
+                            {getTheaterNames(viewingBranch.theaters).map((theater) => (
+                                <div key={theater.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <Theater className="h-4 w-4 text-gray-500" />
+                                    <div>
+                                      <div className="font-medium">{theater.name}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {theater.type || "Standard"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline">{theater.type || "Standard"}</Badge>
+                                </div>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
+                            <Theater className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                            <p className="text-sm">No theaters assigned</p>
+                          </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Facilities */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Facilities</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {viewingBranch.facilities && viewingBranch.facilities.length > 0 ? (
+                          viewingBranch.facilities.map((facility, index) => (
+                              <Badge key={index} variant="outline">
+                                {facility}
+                              </Badge>
+                          ))
+                      ) : (
+                          <p className="text-gray-500">No facilities listed</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+            open={showDeleteDialog}
+            onClose={handleCancelDelete}
+            onConfirm={confirmDeleteBranch}
+            title="Delete Branch"
+            message={`Are you sure you want to delete "${branchToDelete?.name}"? This action cannot be undone.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+        />
+      </div>
+  )
+}
+
+export default AdminBranches

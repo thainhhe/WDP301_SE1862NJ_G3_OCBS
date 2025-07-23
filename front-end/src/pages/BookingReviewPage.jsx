@@ -7,11 +7,11 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ComboSelector from "../components/booking/ComboSelector";
 import VoucherInput from "../components/booking/VoucherInput";
 import { bookingService } from "../services/bookingService";
-import { X } from "lucide-react";
+import { seatService } from "../services/seatService";
+import { formatVND } from "../utils/currencyUtils";
+import { X, ArrowLeft } from "lucide-react";
 
-function formatVND(amount) {
-  return amount?.toLocaleString("en-US") + " VND";
-}
+// Using the utility function from currencyUtils.js instead
 
 const BookingReviewPage = () => {
   const location = useLocation();
@@ -71,6 +71,21 @@ const BookingReviewPage = () => {
     setCombos(prev => prev.filter(c => c._id !== comboId));
   };
 
+  // Handle back to seat selection
+  const handleBackToSeatSelection = async () => {
+    try {
+      // Release the reserved seats
+      await seatService.releaseReservation(showtimeId, selectedSeats.map(s => s._id));
+      
+      // Navigate back to seat selection
+      navigate(`/seat-selection/${showtimeId}`);
+    } catch (error) {
+      console.error("Error releasing seats:", error);
+      // Still navigate back even if release fails
+      navigate(`/seat-selection/${showtimeId}`);
+    }
+  };
+
   if (!showtimeId || !selectedSeats) {
     return <div className="p-8 text-center">Missing booking information. Please select seats again.</div>;
   }
@@ -103,63 +118,83 @@ const BookingReviewPage = () => {
               <ComboSelector combos={combos} setCombos={setCombos} />
             </div>
             <div className="bg-gray-50 rounded-lg p-4 border mb-4 w-full">
-              <div className="flex justify-between mb-2 text-base">
-                <span>Seat Total:</span>
-                <span>{formatVND(totalPrice)}</span>
+              {/* Seat Details */}
+              <div className="mb-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Seat Details:</h5>
+                <div className="space-y-1">
+                  {selectedSeats.map((seat, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>• {seat.row}{seat.number} ({seat.type || 'Standard'})</span>
+                      <span>{formatVND(seat.price || 0)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between mb-2 text-base">
-                <span>Combo Total:</span>
-                <span>{formatVND(comboTotal)}</span>
-              </div>
-              <div className="flex flex-col gap-1 mb-2 text-base">
+              
+              {/* Combo Details */}
+              {combos.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Combo Details:</h5>
+                  <div className="space-y-2">
+                    {combos.map((combo, index) => (
+                      <div key={index} className="border border-gray-200 rounded p-2">
+                        <div className="flex justify-between text-sm font-medium mb-1">
+                          <span>• {combo.name || 'Combo'} x{combo.quantity}</span>
+                          <span>{formatVND(combo.price * combo.quantity)}</span>
+                        </div>
+                        {combo.items && combo.items.length > 0 && (
+                          <div className="text-xs text-gray-600 ml-4">
+                            {combo.items.map((item, itemIndex) => (
+                              <div key={itemIndex}>
+                                - {item.quantity} {item.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Summary Row */}
+              <div className="space-y-2 text-sm font-medium pt-2 border-t border-gray-200">
                 <div className="flex justify-between">
-                  <span>Voucher Discount:</span>
-                  <span className="text-green-700 font-semibold">-{formatVND(discountAmount)}</span>
+                  <span>Seat Total:</span>
+                  <span>{formatVND(totalPrice)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Combo Total:</span>
+                  <span>{formatVND(comboTotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>{formatVND(totalPrice + comboTotal)}</span>
                 </div>
                 {voucher && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {voucher.discountType === "percentage"
-                      ? `Discount ${voucher.discountValue}%${voucher.maxDiscount > 0 ? ` (max ${formatVND(voucher.maxDiscount)})` : ""}`
-                      : `Discount ${formatVND(voucher.discountValue)}${voucher.maxDiscount > 0 ? ` (max ${formatVND(voucher.maxDiscount)})` : ""}`}
-                    {voucher.minPurchase > 0 ? ` | Min order: ${formatVND(voucher.minPurchase)}` : ""}
+                  <div className="flex justify-between text-green-600">
+                    <span>Voucher: {voucher.code}</span>
+                    <span>-{formatVND(discountAmount)}</span>
                   </div>
                 )}
               </div>
-              {/* Combo details summary */}
-              {combos.length > 0 && (
-                <div className="mt-2 mb-2">
-                  <div className="font-semibold text-sm mb-1">Combo Details:</div>
-                  <ul className="list-disc ml-6 text-sm text-gray-700">
-                    {combos.map((c, idx) => (
-                      <li key={c._id + idx} className="flex items-center gap-2">
-                        <span className="font-medium">x{c.quantity} </span>
-                        {c.name ? c.name + ': ' : ''}
-                        {c.items && c.items.length > 0
-                          ? c.items.map((item, i) => `${item.quantity} ${item.name}${i < c.items.length - 1 ? ', ' : ''}`).join('')
-                          : ''}
-                        <button
-                          className="ml-2 text-gray-400 hover:text-red-600 focus:outline-none"
-                          title="Remove this combo"
-                          onClick={() => handleRemoveCombo(c._id)}
-                        >
-                          <X size={16} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
               <div className="mb-2">
                 <VoucherInput voucher={voucher} setVoucher={setVoucher} setError={setVoucherError} combos={combos} seatTotal={totalPrice} />
                 {voucherError && <div className="text-red-500 text-sm mt-2">{voucherError}</div>}
               </div>
-              <div className="flex justify-between mt-4 text-lg font-bold border-t pt-3">
+              {/* Final Total */}
+              <div className="border-t mt-3 pt-3 flex justify-between font-semibold text-lg">
                 <span>Final Total:</span>
                 <span className="text-rose-700">{formatVND(finalTotal)}</span>
               </div>
             </div>
             {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-between items-center mt-6">
+              <Button variant="outline" onClick={handleBackToSeatSelection}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Seat Selection
+              </Button>
               <Button onClick={handleConfirmBooking} disabled={loading} className="bg-rose-600 hover:bg-rose-700 px-8 py-2 text-lg font-semibold rounded shadow">
                 {loading ? <LoadingSpinner size={20} /> : "Book Ticket"}
               </Button>

@@ -36,7 +36,7 @@ export const getAllShowtimes = async (req, res) => {
     const showtimes = await Showtime.find(filter)
       .populate("movie", "title duration poster hotness")
       .populate("branch", "name location")
-      .populate("theater", "name capacity")
+      .populate("theater", "name")
       .sort({ startTime: 1 })
       .limit(limit)
       .skip((page - 1) * limit);
@@ -65,7 +65,7 @@ export const getShowtimeById = async (req, res) => {
     const showtime = await Showtime.findById(id)
       .populate("movie", "title duration poster description genre")
       .populate("branch", "name location contact")
-      .populate("theater", "name capacity seatLayout");
+      .populate("theater", "name seatLayout");
 
     if (!showtime)
       return res.status(404).json({ message: "Showtime not found" });
@@ -181,8 +181,6 @@ export const createShowtime = async (req, res) => {
       },
       isFirstShow,
       isLastShow,
-      seatsAvailable: seatCount,
-      seatsBooked: 0,
     });
 
     const created = await newShowtime.save();
@@ -203,12 +201,28 @@ export const createShowtime = async (req, res) => {
       }));
 
       await SeatStatus.insertMany(seatStatuses);
+    } else if (seatCount > 0) {
+      // Nếu không auto-initialize, vẫn cần tạo seat statuses để seat layout hiển thị được
+      const seats = await Seat.find({
+        theater: theater,
+        branch: branch,
+        isActive: true,
+      });
+
+      const seatStatuses = seats.map((seat) => ({
+        showtime: created._id,
+        seat: seat._id,
+        status: "available",
+        price: getPriceForSeatType(seat.type, created.price),
+      }));
+
+      await SeatStatus.insertMany(seatStatuses);
     }
 
     const populated = await Showtime.findById(created._id)
       .populate("movie", "title duration poster")
       .populate("branch", "name location")
-      .populate("theater", "name capacity");
+      .populate("theater", "name");
 
     res.status(201).json(populated);
   } catch (err) {
@@ -231,8 +245,6 @@ export const updateShowtime = async (req, res) => {
     price,
     isFirstShow,
     isLastShow,
-    seatsAvailable,
-    seatsBooked,
   } = req.body;
 
   if (!isValidObjectId(id))
@@ -283,9 +295,6 @@ export const updateShowtime = async (req, res) => {
     if (theater) showtime.theater = theater;
     if (typeof isFirstShow === "boolean") showtime.isFirstShow = isFirstShow;
     if (typeof isLastShow === "boolean") showtime.isLastShow = isLastShow;
-    if (typeof seatsAvailable === "number")
-      showtime.seatsAvailable = seatsAvailable;
-    if (typeof seatsBooked === "number") showtime.seatsBooked = seatsBooked;
 
     if (price) {
       const { standard, vip, couple } = price;
@@ -338,7 +347,7 @@ export const updateShowtime = async (req, res) => {
     const populated = await Showtime.findById(id)
       .populate("movie", "title duration poster")
       .populate("branch", "name location")
-      .populate("theater", "name capacity");
+      .populate("theater", "name");
 
     return res.json(populated);
   } catch (err) {
@@ -483,7 +492,7 @@ export const updateShowtimeStatus = async (req, res) => {
     const populated = await Showtime.findById(id)
       .populate("movie", "title duration")
       .populate("branch", "name location")
-      .populate("theater", "name capacity");
+      .populate("theater", "name");
     res.json(populated);
   } catch (err) {
     console.error(err);

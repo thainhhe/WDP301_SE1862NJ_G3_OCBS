@@ -112,7 +112,7 @@ const AdminVouchers = () => {
                                     alignItems: 'center'
                                 }}>
                                     <Typography variant="subtitle1" color="primary">
-                                        {voucher.discountType === 'percentage' ? `${voucher.discountValue}% OFF` : `$${voucher.discountValue} OFF`}
+                                        {voucher.discountType === 'percentage' ? `${voucher.discountValue}% OFF` : `${voucher.discountValue.toLocaleString()} VND OFF`}
                                     </Typography>
                                     <Box>
                                         <IconButton onClick={() => handleEdit(voucher)}><EditIcon/></IconButton>

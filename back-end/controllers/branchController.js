@@ -9,8 +9,8 @@ const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 // @access  Public
 export const getAllBranches = async (req, res) => {
     try {
-        const branches = await Branch.find({ isActive: true })
-            .populate('theaters', 'name capacity seatLayout');
+        const branches = await Branch.find()
+            .populate('theaters', 'name seatLayout');
         return res.json(branches);
     } catch (err) {
         console.error(err);
@@ -29,7 +29,7 @@ export const getBranchById = async (req, res) => {
 
     try {
         const branch = await Branch.findById(id)
-            .populate('theaters', 'name capacity seatLayout');
+            .populate('theaters', 'name seatLayout');
         if (!branch || !branch.isActive) {
             return res.status(404).json({ message: 'Branch not found' });
         }
@@ -106,7 +106,7 @@ export const createBranch = async (req, res) => {
 
         const createdBranch = await branch.save();
         const populated = await Branch.findById(createdBranch._id)
-            .populate('theaters', 'name capacity seatLayout');
+            .populate('theaters', 'name seatLayout');
 
         return res.status(201).json(populated);
     } catch (err) {
@@ -183,7 +183,7 @@ export const updateBranch = async (req, res) => {
 
         const updatedBranch = await branch.save();
         const populated = await Branch.findById(updatedBranch._id)
-            .populate('theaters', 'name capacity seatLayout');
+            .populate('theaters', 'name seatLayout');
 
         return res.json(populated);
     } catch (err) {

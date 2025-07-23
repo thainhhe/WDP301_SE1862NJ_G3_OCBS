@@ -4,10 +4,9 @@ const ShowtimeCard = ({ showtime }) => {
     // Format date and time
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
+        return date.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
             year: 'numeric'
         });
     };
@@ -83,7 +82,11 @@ const ShowtimeCard = ({ showtime }) => {
                     </h3>
                     {isToday() && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-              Today
+              {new Date(showtime.date).toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })}
             </span>
                     )}
                 </div>
@@ -179,7 +182,10 @@ const ShowtimeCard = ({ showtime }) => {
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                         <span className="text-sm text-gray-600">Ticket Price</span>
                         <span className="text-lg font-semibold text-gray-900">
-              ${showtime.price.toFixed(2)}
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(showtime.price)}
             </span>
                     </div>
                 )}
@@ -225,7 +231,11 @@ const ShowtimeCard = ({ showtime }) => {
                     )}
                     {showtime.createdAt && (
                         <p className="text-xs text-gray-500">
-                            Created: {new Date(showtime.createdAt).toLocaleDateString()}
+                            Tạo lúc: {new Date(showtime.createdAt).toLocaleDateString("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}
                         </p>
                     )}
                 </div>

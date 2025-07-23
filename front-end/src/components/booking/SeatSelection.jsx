@@ -418,7 +418,10 @@ const SeatSelection = ({
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-lg font-medium">Total Price:</span>
                 <span className="text-2xl font-bold text-green-600">
-                  ${calculateTotalPrice().toFixed(2)}
+                  {new Intl.NumberFormat("vi-VN", {
+                    style: "currency",
+                    currency: "VND",
+                  }).format(calculateTotalPrice())}
                 </span>
               </div>
 
