@@ -44,10 +44,8 @@ const createTheater = asyncHandler(async (req, res) => {
  */
 const getTheatersByBranch = asyncHandler(async (req, res) => {
   const { branchId } = req.params;
-
   // Find all theaters where the 'branch' field matches the provided branchId
   const theaters = await Theater.find({ branch: branchId });
-
   if (theaters) {
     res.json(theaters);
   } else {
@@ -121,9 +119,23 @@ const deleteTheater = asyncHandler(async (req, res) => {
     throw new Error("Theater not found.");
   }
 });
+/**
+ * @desc    Get all theaters in the system
+ * @route   GET /api/theaters
+ * @access  Private/Admin
+ */
+const getAllTheaters = asyncHandler(async (req, res) => {
+  // Lấy tất cả theaters, populate tên branch để dễ đọc
+  const theaters = await Theater.find({})
+      .populate({ path: 'branch', select: 'name' })
+      .lean();
 
+  // Trả mảng (có thể rỗng)
+  res.status(200).json(theaters);
+});
 export {
   createTheater,
+    getAllTheaters,
   getTheatersByBranch,
   getTheaterById,
   updateTheater,

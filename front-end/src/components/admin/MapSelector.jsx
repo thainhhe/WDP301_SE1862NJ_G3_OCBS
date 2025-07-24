@@ -85,7 +85,7 @@ const MapSelector = ({ latitude = 10.8231, longitude = 106.6297, onLocationSelec
         // Load Google Maps API if not already loaded
         if (!window.google) {
             const script = document.createElement("script")
-            script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places`
+            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBcne-Uj1lOewST8oRzcTRqkvX_tNSnKNs&libraries=places`
             script.async = true
             script.defer = true
             script.onload = initMap

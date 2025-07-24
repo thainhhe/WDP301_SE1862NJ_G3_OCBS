@@ -4,12 +4,13 @@ import {
   getTheatersByBranch,
   getTheaterById,
   updateTheater,
-  deleteTheater,
+  deleteTheater, getAllTheaters,
 } from "../controllers/theaterController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+router.route("/").get(getAllTheaters);
 router.route("/").post(protect, admin, createTheater);
 
 router.route("/branch/:branchId").get(protect, admin, getTheatersByBranch);
