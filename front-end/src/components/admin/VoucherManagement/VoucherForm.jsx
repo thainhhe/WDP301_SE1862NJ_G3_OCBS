@@ -15,7 +15,6 @@ const voucherSchema = z.object({
     description: z.string().optional(),
     discountType: z.enum(["percentage", "fixed"]),
     discountValue: z.coerce.number().positive("Discount value must be positive"),
-    usageLimit: z.coerce.number().int().positive("Usage limit must be a positive integer"),
     startDate: z.date({ required_error: "Start date is required" }),
     endDate: z.date({ required_error: "End date is required" }),
     minPurchase: z.coerce.number().min(0).optional().nullable(),
@@ -49,7 +48,6 @@ const VoucherForm = ({ voucher, onSave, onCancel }) => {
             maxDiscount: "",
             startDate: null,
             endDate: null,
-            usageLimit: "",
             isActive: true,
         }
     });
@@ -60,7 +58,7 @@ const VoucherForm = ({ voucher, onSave, onCancel }) => {
         const defaultValues = {
             code: "", description: "", discountType: "percentage", discountValue: "",
             minPurchase: "", maxDiscount: "", startDate: null, endDate: null,
-            usageLimit: "", isActive: true,
+            isActive: true,
         };
         if (voucher) {
             reset({
@@ -137,16 +135,7 @@ const VoucherForm = ({ voucher, onSave, onCancel }) => {
                                     )}
                                 />
                             </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <Controller
-                                    name="usageLimit"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField {...field} label="Usage Limit" type="number" fullWidth required error={!!errors.usageLimit} helperText={errors.usageLimit?.message} />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
+                            <Grid size={{ xs: 12, md: 6 }}>
                                 <Controller
                                     name="minPurchase"
                                     control={control}
@@ -155,7 +144,7 @@ const VoucherForm = ({ voucher, onSave, onCancel }) => {
                                     )}
                                 />
                             </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
+                            <Grid size={{ xs: 12, md: 6 }}>
                                 <Controller
                                     name="maxDiscount"
                                     control={control}

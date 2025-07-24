@@ -77,9 +77,6 @@ const createBooking = asyncHandler(async (req, res) => {
       if (!voucher || !voucher.isActive || now < voucher.startDate || now > voucher.endDate) {
         throw new Error("Voucher is not valid or expired");
       }
-      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
-        throw new Error("Voucher usage limit reached");
-      }
       // Kiểm tra minPurchase
       const subtotal = seatTotal + comboTotal;
       if (voucher.minPurchase && subtotal < voucher.minPurchase) {
