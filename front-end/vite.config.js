@@ -15,6 +15,7 @@ export default defineConfig({
       "@hooks": path.resolve(__dirname, "./src/hooks"),
       "@services": path.resolve(__dirname, "./src/services"),
       "@context": path.resolve(__dirname, "./src/context"),
+      "@router": path.resolve(__dirname, "./src/router"),
     },
   },
   server: {
@@ -25,5 +26,8 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  css: {
+    postcss: "./postcss.config.js",
   },
 });

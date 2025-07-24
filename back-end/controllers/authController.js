@@ -12,7 +12,7 @@ const generateToken = (id) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, province, city, gender, dob } = req.body;
 
   // Check if user exists
   const userExists = await User.findOne({ email });
@@ -28,6 +28,10 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     phone,
+    province,
+    city,
+    gender,
+    dob,
     role: "customer",
   });
 
@@ -37,6 +41,10 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      province: user.province,
+      city: user.city,
+      gender: user.gender,
+      dob: user.dob,
       role: user.role,
       token: generateToken(user._id),
     });
@@ -134,9 +142,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   // Create reset url
-  const resetUrl = `${req.protocol}://${req.get(
-    "host"
-  )}/reset-password/${resetToken}`;
+  const resetUrl = `${req.protocol}://localhost:3000/reset-password/${resetToken}`;
 
   const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
 

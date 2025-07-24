@@ -13,7 +13,8 @@ const showtimeSchema = mongoose.Schema(
       required: true,
     },
     theater: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Theater",
       required: true,
     },
     startTime: {
@@ -38,6 +39,11 @@ const showtimeSchema = mongoose.Schema(
         default: 0,
       },
     },
+    status: {
+      type: String,
+      enum: ["active", "completed", "cancelled"],
+      default: "active",
+    },
     isLastShow: {
       type: Boolean,
       default: false,
@@ -45,14 +51,6 @@ const showtimeSchema = mongoose.Schema(
     isFirstShow: {
       type: Boolean,
       default: false,
-    },
-    seatsAvailable: {
-      type: Number,
-      required: true,
-    },
-    seatsBooked: {
-      type: Number,
-      default: 0,
     },
   },
   {
