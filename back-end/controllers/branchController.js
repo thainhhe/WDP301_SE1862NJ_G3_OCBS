@@ -1,22 +1,17 @@
 import mongoose from 'mongoose';
 import Branch from '../models/branchModel.js';
 import Theater from '../models/theaterModel.js';
+import asyncHandler from 'express-async-handler';
 
 const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all branches
 // @route   GET /api/branches
 // @access  Public
-export const getAllBranches = async (req, res) => {
-    try {
-        const branches = await Branch.find()
-            .populate('theaters', 'name seatLayout');
-        return res.json(branches);
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server Error' });
-    }
-};
+export const getAllBranches = asyncHandler(async (req, res) => {
+    const branches = await Branch.find({}).sort({ name: 1 });
+    res.json(branches);
+});
 
 // @desc    Get single branch by ID
 // @route   GET /api/branches/:id

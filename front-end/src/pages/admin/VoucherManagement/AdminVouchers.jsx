@@ -7,8 +7,8 @@ import {
     ConfirmationNumber as VoucherIcon
 } from "@mui/icons-material";
 import {voucherService} from "@services/voucherService.js";
-import VoucherForm from "@components/admin/VoucherForm.jsx";
-import ConfirmDialog from "@components/ui/ConfirmDialog";
+import VoucherForm from "@components/admin/VoucherManagement/VoucherForm.jsx";
+import ConfirmDialog from "@components/ui/ConfirmDialog.jsx";
 
 const AdminVouchers = () => {
     const [vouchers, setVouchers] = useState([]);

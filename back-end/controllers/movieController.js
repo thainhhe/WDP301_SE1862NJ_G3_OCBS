@@ -280,6 +280,12 @@ const getTrendingMovies = asyncHandler(async (req, res) => {
   res.json(trendingMovies);
 });
 
+// Get all movies (simple list for dropdowns) GET /api/movies/all Public
+const getAllMoviesSimple = asyncHandler(async (req, res) => {
+    const movies = await Movie.find({}).select('title').sort({ title: 1 });
+    res.json(movies);
+});
+
 export {
   createMovie,
   getMovies,
@@ -289,4 +295,5 @@ export {
   getRecommendedMovies,
   updateMovieHotness,
   getTrendingMovies,
+  getAllMoviesSimple
 };

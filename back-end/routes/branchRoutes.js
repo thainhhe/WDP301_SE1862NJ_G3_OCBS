@@ -13,6 +13,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', getAllBranches);
+router.get('/all', getAllBranches);
 router.get('/:id', getBranchById);
 
 // Protected routes (admin only)

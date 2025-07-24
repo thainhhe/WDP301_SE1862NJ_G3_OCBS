@@ -8,6 +8,7 @@ import {
   getRecommendedMovies,
   updateMovieHotness,
   getTrendingMovies,
+  getAllMoviesSimple
 } from "../controllers/movieController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
@@ -17,6 +18,7 @@ const router = express.Router();
 router.get("/", getMovies);
 router.get("/trending", getTrendingMovies);
 router.get("/recommended", getRecommendedMovies);
+router.get('/all', getAllMoviesSimple);
 
 router.get("/:id", getMovieById);
 

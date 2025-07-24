@@ -30,3 +30,8 @@ export const branchService = {
         await api.delete(`/branches/${id}`);
     },
 };
+
+export const getAllBranches = async () => {
+    const { data } = await api.get('/branches/all');
+    return data;
+};

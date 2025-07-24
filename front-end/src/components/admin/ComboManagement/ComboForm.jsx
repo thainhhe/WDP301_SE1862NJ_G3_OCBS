@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Grid, IconButton,
-    FormControl, InputLabel, Select, MenuItem, Typography, Checkbox, FormControlLabel
+    FormControl, InputLabel, Select, MenuItem, Typography, Checkbox, FormControlLabel, Box
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 const itemSchema = z.object({
     name: z.string().min(1, 'Item name is required'),
@@ -48,6 +49,10 @@ const ComboForm = ({ open, onClose, onSave, combo }) => {
         name: "items"
     });
 
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState('');
+    const [uploading, setUploading] = useState(false);
+
     useEffect(() => {
         const defaultState = {
             name: '', description: '', price: '', image: '',
@@ -58,13 +63,61 @@ const ComboForm = ({ open, onClose, onSave, combo }) => {
                 ...combo,
                 items: combo.items && combo.items.length ? combo.items : [{ name: '', quantity: 1 }],
             });
+            if (combo.image) {
+                setImagePreview(combo.image.startsWith('http') ? combo.image : `http://localhost:5000/${combo.image}`);
+            } else {
+                setImagePreview('');
+            }
+            setImageFile(null);
         } else {
             reset(defaultState);
+            setImagePreview('');
+            setImageFile(null);
         }
     }, [combo, open, reset]);
 
-    const handleFormSubmit = (data) => {
-        onSave(data);
+    const handleImageFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size should be less than 5MB');
+                return;
+            }
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => setImagePreview(ev.target.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const uploadImageFile = async () => {
+        if (!imageFile) return null;
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('combo', imageFile);
+            const response = await fetch('http://localhost:5000/api/upload/combo', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!response.ok) throw new Error('Upload failed');
+            const data = await response.json();
+            return data.url || data.filePath;
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleFormSubmit = async (data) => {
+        let imageUrl = data.image;
+        if (imageFile) {
+            imageUrl = await uploadImageFile();
+        }
+        onSave({ ...data, image: imageUrl });
     };
 
     return (
@@ -117,14 +170,38 @@ const ComboForm = ({ open, onClose, onSave, combo }) => {
                                 )}
                             />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <Controller
-                                name="image"
-                                control={control}
-                                render={({ field }) => (
-                                    <TextField {...field} label="Image URL" fullWidth error={!!errors.image} helperText={errors.image?.message} />
+                        <Grid size={{ xs: 12, md: 12 }}>
+                            <Box mt={2} display="flex" flexDirection="column" alignItems="flex-start">
+                                <Button
+                                    component="label"
+                                    variant="outlined"
+                                    disabled={uploading}
+                                    startIcon={<CloudUploadIcon />}
+                                    sx={{ mb: 1 }}
+                                >
+                                    {imageFile ? 'Change Image' : 'Upload Image'}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        onChange={handleImageFileChange}
+                                    />
+                                </Button>
+                                {imagePreview && (
+                                    <Box>
+                                        <img
+                                            src={imagePreview}
+                                            alt="Combo Preview"
+                                            style={{ maxWidth: 180, maxHeight: 120, borderRadius: 8, marginTop: 8 }}
+                                        />
+                                    </Box>
                                 )}
-                            />
+                                {errors.image && (
+                                    <Typography color="error.main" variant="caption">
+                                        {errors.image.message}
+                                    </Typography>
+                                )}
+                            </Box>
                         </Grid>
                         <Grid size={{ xs: 12 }}>
                             <Typography variant="h6" sx={{ mb: 1 }}>Items in Combo</Typography>
@@ -174,7 +251,7 @@ const ComboForm = ({ open, onClose, onSave, combo }) => {
                 </DialogContent>
                 <DialogActions sx={{ p: 3 }}>
                     <Button onClick={onClose} color="inherit">Cancel</Button>
-                    <Button type="submit" variant="contained">Save Combo</Button>
+                    <Button type="submit" variant="contained" disabled={uploading}>Save Combo</Button>
                 </DialogActions>
             </form>
         </Dialog>

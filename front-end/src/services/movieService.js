@@ -41,3 +41,8 @@ export const movieService = {
     return response.data;
   },
 };
+
+export const getAllMovies = async () => {
+    const { data } = await api.get(`/movies/all`);
+    return data;
+};
