@@ -86,6 +86,68 @@ router.post("/poster", (req, res) => {
   });
 });
 
+// Tạo thư mục uploads/combos nếu chưa có
+const combosDir = path.join(__dirname, "../uploads/combos");
+if (!fs.existsSync(combosDir)) {
+  fs.mkdirSync(combosDir, { recursive: true });
+}
+
+const comboStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, combosDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const extension = path.extname(file.originalname);
+    cb(null, "combo-" + uniqueSuffix + extension);
+  },
+});
+
+const uploadCombo = multer({
+  storage: comboStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Route upload combo image
+router.post("/combo", (req, res) => {
+  uploadCombo.single("combo")(req, res, (err) => {
+    if (err) {
+      console.error("Upload error:", err);
+      return res.status(400).json({
+        message: "Upload failed",
+        error: err.message,
+      });
+    }
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      const filePath = `uploads/combos/${req.file.filename}`;
+      res.json({
+        message: "File uploaded successfully",
+        url: filePath,
+        filePath: filePath,
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+      });
+    } catch (error) {
+      console.error("Upload processing error:", error);
+      res.status(500).json({
+        message: "Upload processing failed",
+        error: error.message,
+      });
+    }
+  });
+});
+
 // Route để kiểm tra upload endpoint
 router.get("/test", (req, res) => {
   res.json({

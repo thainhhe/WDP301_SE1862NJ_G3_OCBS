@@ -23,89 +23,51 @@ const navConfig = [
   },
   {
     type: "item",
-    text: "Movie Management",
+    text: "Movie",
     icon: <MovieIcon />,
     path: "/admin/movies",
   },
   {
     type: "item",
-    text: "User Management",
+    text: "User",
     icon: <PeopleIcon />,
     path: "/admin/users",
   },
   {
     type: "item",
-    text: "Showtime Management",
+    text: "Showtime",
     icon: <AccessTimeIcon />,
     path: "/admin/showtimes",
   },
   {
     type: "item",
-    text: "Seat Layout Management",
+    text: "Seat Layout",
     icon: <EventSeatIcon />,
     path: "/admin/seat-layouts",
   },
   {
     type: "item",
-    text: "Voucher Management",
+    text: "Voucher",
     icon: <ConfirmationNumberIcon />,
     path: "/admin/vouchers",
   },
   {
     type: "item",
-    text: "Combo Management",
+    text: "Combo",
     icon: <FastfoodIcon />,
     path: "/admin/combos",
   },
   {
     type: "item",
-    text: "Theater Management",
+    text: "Theater",
     path: "/admin/theaters",
     icon: <TheatersIcon />,
   },  {
     type: "item",
-    text: "Branch Management",
+    text: "Branch",
     path: "/admin/branchs",
     icon: <TheatersIcon />,
-  },
-  {
-    type: "parent",
-    text: "Settings",
-    icon: <SettingsIcon />,
-    children: [
-      {
-        type: "item",
-        text: "General",
-        path: "/admin/settings/general",
-      },
-      {
-        type: "item",
-        text: "Permissions",
-        path: "/admin/settings/permissions",
-      },
-    ],
-  },
-  {
-    type: "title",
-    text: "Analytics",
-  },
-  {
-    type: "parent",
-    text: "Reports",
-    icon: <BarChartIcon />,
-    children: [
-      {
-        type: "item",
-        text: "Sales Report",
-        path: "/admin/reports/sales",
-      },
-      {
-        type: "item",
-        text: "User Report",
-        path: "/admin/reports/users",
-      },
-    ],
-  },
+  }
 ];
 
 export default navConfig;

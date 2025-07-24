@@ -3,9 +3,9 @@ import {
     Box, Typography, Button, Paper, Grid, CircularProgress, Alert, IconButton, Card, CardMedia, CardContent, CardActions
 } from '@mui/material';
 import {Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon} from '@mui/icons-material';
-import {comboService} from '../../services/comboService';
-import ComboForm from '../../components/admin/ComboForm.jsx';
-import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx';
+import {comboService} from '@services/comboService.js';
+import ComboForm from '@components/admin/ComboManagement/ComboForm.jsx';
+import ConfirmDialog from '@components/ui/ConfirmDialog.jsx';
 
 const AdminCombos = () => {
     const [combos, setCombos] = useState([]);
@@ -96,8 +96,8 @@ const AdminCombos = () => {
                         <Card sx={{height: '100%', display: 'flex', flexDirection: 'column'}}>
                             <CardMedia
                                 component="img"
-                                height="160"
-                                image={combo.image || 'https://via.placeholder.com/300x160?text=No+Image'}
+                                sx={{ width: '100%', height: 160, objectFit: 'cover' }}
+                                image={combo.image ? (combo.image.startsWith('http') ? combo.image : `http://localhost:5000/${combo.image}`) : 'https://via.placeholder.com/300x160?text=No+Image'}
                                 alt={combo.name}
                             />
                             <CardContent sx={{flexGrow: 1}}>

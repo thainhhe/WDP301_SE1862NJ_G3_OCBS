@@ -27,11 +27,11 @@ import ResetPasswordPage from "@pages/auth/ResetPasswordPage";
 import UserList from "@pages/admin/UserManagement/UserList";
 import AdminMovies from "@pages/admin/AdminMovies";
 import DashboardLayout from "@/layout/DashboardLayout.jsx";
-import AdminDashboardPage from "@pages/admin/AdminDashboardPage.jsx";
+import AdminDashboardPage from "@pages/admin/Dashboard/AdminDashboardPage.jsx";
 import AdminShowtimes from "@pages/admin/AdminShowtime.jsx";
 import SeatLayoutManagement from "@pages/admin/SeatLayoutManagement";
-import AdminVouchers from "@pages/admin/AdminVouchers.jsx";
-import AdminCombos from "../pages/admin/AdminCombos.jsx";
+import AdminVouchers from "@pages/admin/VoucherManagement/AdminVouchers.jsx";
+import AdminCombos from "@pages/admin/ComboManagement/AdminCombos.jsx";
 import AdminTheater from "@pages/admin/AdminTheater.jsx";
 import AdminBranches from "@pages/admin/AdminBranch.jsx";
 // Employee Pages

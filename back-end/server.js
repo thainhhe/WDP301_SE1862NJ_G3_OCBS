@@ -11,6 +11,7 @@ import connectDB from "./config/db.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 import startCleanupJob from "./jobs/cleanupExpiredReservations.js";
 import { initializeSocketHandlers } from "./socket/socketHandlers.js";
+import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 
 // Load env
 dotenv.config();
@@ -88,6 +89,7 @@ app.use("/api/theaters", theaterRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/combos", comboRoutes);
+app.use("/api/admin-dashboard", adminDashboardRoutes);
 
 //app.use("/api/debug", debugRoutes);
 
