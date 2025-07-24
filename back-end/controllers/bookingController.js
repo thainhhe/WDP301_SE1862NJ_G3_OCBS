@@ -462,6 +462,34 @@ const getAllBookingsForEmployee = asyncHandler(async (req, res) => {
   res.json({ success: true, bookings });
 });
 
+// [ADMIN] Get all bookings for a specific user
+const getBookingsByUserId = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    res.status(400);
+    throw new Error("Missing userId parameter");
+  }
+  // Only allow admin to use this endpoint
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error("Not authorized");
+  }
+  const bookings = await Booking.find({
+    user: userId,
+    bookingStatus: "confirmed"
+  })
+    .populate({
+      path: "showtime",
+      populate: [
+        { path: "movie", select: "title" },
+        { path: "theater", select: "name" },
+        { path: "branch", select: "name" }
+      ]
+    })
+    .sort({ createdAt: -1 });
+  res.json({ bookings });
+});
+
 export {
   createBooking,
   getMyBookings,
@@ -471,4 +499,5 @@ export {
   verifyTicket,
   checkInTicket,
   getAllBookingsForEmployee,
+  getBookingsByUserId,
 };

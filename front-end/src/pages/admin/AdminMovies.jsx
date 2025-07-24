@@ -408,17 +408,6 @@ const AdminMovies = () => {
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteMovie(movie)}
-                              sx={{
-                                bgcolor: "error.main",
-                                color: "white",
-                                "&:hover": { bgcolor: "error.dark" },
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
                           </Box>
                           <Box sx={{ position: "absolute", top: 8, left: 8 }}>
                             <Chip

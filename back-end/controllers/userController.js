@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
+import crypto from 'crypto';
+import { sendNewUserCredentials } from '../utils/emailService.js';
 
 // @desc    Get all users (with filters, search, pagination, sort)
 // @route   GET /api/users
@@ -48,7 +50,7 @@ const getUserById = asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  Private/Admin
 const createUser = asyncHandler(async (req, res) => {
-    const { name, email, phone, role } = req.body;
+    const { name, email, phone, role, gender, dob, province, city } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -64,6 +66,10 @@ const createUser = asyncHandler(async (req, res) => {
         phone,
         role,
         password: generatedPassword,
+        gender,
+        dob,
+        province,
+        city
     });
 
     if (user) {
@@ -80,6 +86,10 @@ const createUser = asyncHandler(async (req, res) => {
             email: user.email,
             phone: user.phone,
             role: user.role,
+            gender: user.gender,
+            dob: user.dob,
+            province: user.province,
+            city: user.city
         });
     } else {
         res.status(400);
@@ -98,6 +108,10 @@ const updateUserById = asyncHandler(async (req, res) => {
         user.email = req.body.email || user.email;
         user.phone = req.body.phone || user.phone;
         user.role = req.body.role || user.role;
+        user.gender = req.body.gender || user.gender;
+        user.dob = req.body.dob || user.dob;
+        user.province = req.body.province || user.province;
+        user.city = req.body.city || user.city;
         if (req.body.password) {
             user.password = req.body.password;
         }
@@ -109,6 +123,10 @@ const updateUserById = asyncHandler(async (req, res) => {
             email: updatedUser.email,
             phone: updatedUser.phone,
             role: updatedUser.role,
+            gender: updatedUser.gender,
+            dob: updatedUser.dob,
+            province: updatedUser.province,
+            city: updatedUser.city
         });
     } else {
         res.status(404);

@@ -31,7 +31,7 @@ const userSchema = mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["Nam", "Nữ", "Khác"],
+      enum: ["male", "female", "other"],
       required: true,
     },
     dob: {
