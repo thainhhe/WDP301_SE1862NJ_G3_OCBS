@@ -138,15 +138,15 @@ const RegisterPage = () => {
               <label className="block text-gray-700 font-semibold mb-1">Giới tính</label>
               <div className="flex space-x-6 mt-1">
                 <label className="inline-flex items-center cursor-pointer">
-                  <input type="radio" name="gender" value="Nam" checked={gender === "Nam"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
+                  <input type="radio" name="gender" value="male" checked={gender === "male"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
                   <span className="ml-2 text-gray-700">Nam</span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
-                  <input type="radio" name="gender" value="Nữ" checked={gender === "Nữ"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
+                  <input type="radio" name="gender" value="female" checked={gender === "female"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
                   <span className="ml-2 text-gray-700">Nữ</span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
-                  <input type="radio" name="gender" value="Khác" checked={gender === "Khác"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
+                  <input type="radio" name="gender" value="other" checked={gender === "other"} onChange={e => setGender(e.target.value)} className="form-radio text-indigo-500 focus:ring-indigo-400" />
                   <span className="ml-2 text-gray-700">Khác</span>
                 </label>
               </div>
