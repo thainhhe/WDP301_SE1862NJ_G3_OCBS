@@ -491,7 +491,7 @@ const CustomerSeatSelection = ({
                         isSelected ? (
                           getSeatIcon(seat)
                         ) : (
-                          <X className="w-3 h-3" />
+                          <X className={`w-3 h-3 ${seat.availability?.status === 'reserved' ? 'text-orange-800' : 'text-red-800'}`} />
                         )}
                       </button>
                     );
