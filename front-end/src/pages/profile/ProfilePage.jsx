@@ -248,14 +248,14 @@ const ProfilePage = () => {
               <div className="text-lg font-semibold text-indigo-700 mb-2">{formData.name}</div>
               <div className="text-gray-500 mb-1">{formData.email}</div>
               <div className="mt-6 w-full">
-                <div className="text-xs text-gray-400 mb-1">Sở thích thể loại phim</div>
+                <div className="text-xs text-gray-400 mb-1"></div>
                 <div className="flex flex-wrap gap-2">
                   {formData.genres && formData.genres.length > 0 ? (
                     formData.genres.map((g) => (
                       <span key={g} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs border border-indigo-200">{g}</span>
                     ))
                   ) : (
-                    <span className="text-gray-400 text-xs">Chưa chọn</span>
+                    <span className="text-gray-400 text-xs"></span>
                   )}
                 </div>
               </div>
@@ -303,14 +303,21 @@ const ProfilePage = () => {
                           minute: "2-digit",
                         }) : ''}</td>
                         <td className="px-3 py-2">{b.seats?.map(s => s.row + s.number).join(', ')}</td>
-                        <td className="px-3 py-2">{b.checkedIn ? 'Đã check-in' : 'Chưa check-in'}</td>
-                        <td className="px-3 py-2">{b.createdAt ? new Date(b.createdAt).toLocaleString("vi-VN", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }) : ''}</td>
+
+                        <td className="px-3 py-2">{(() => {
+                          // Nếu đã check-in thì hiển thị 'Đã check-in'
+                          if (b.checkedIn) return 'Đã check-in';
+                          // Lấy thời gian hiện tại
+                          const now = new Date();
+                          // Lấy endTime hoặc startTime của suất chiếu
+                          const endTime = b.showtime?.endTime ? new Date(b.showtime.endTime) : (b.showtime?.startTime ? new Date(b.showtime.startTime) : null);
+                          // Nếu suất chiếu đã kết thúc và chưa check-in thì hiển thị 'Hết hạn'
+                          if (endTime && now > endTime) return 'Hết hạn';
+                          // Nếu chưa check-in và suất chiếu chưa kết thúc thì hiển thị 'Chưa check-in'
+                          return 'Chưa check-in';
+                        })()}</td>
+                        <td className="px-3 py-2">{b.createdAt ? new Date(b.createdAt).toLocaleString() : ''}</td>
+
                       </tr>
                     ))}
                   </tbody>

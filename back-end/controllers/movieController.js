@@ -53,7 +53,8 @@ const getMovies = asyncHandler(async (req, res) => {
 
   // Filter by status
   if (status) {
-    filter.status = status;
+    const statusArray = status.split(',').map(s => s.trim());
+    filter.status = { $in: statusArray };
   }
 
   // Filter by genre

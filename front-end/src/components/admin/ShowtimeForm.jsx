@@ -54,7 +54,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
 
         // Load movies and branches in parallel
         const [moviesResult, branchesResult] = await Promise.allSettled([
-          movieService.getMovies({ limit: 100 }),
+          movieService.getMovies({ limit: 100,status: ["coming-soon", "now-showing"] }),
           branchService.getBranches({ limit: 100 }),
         ])
 
@@ -134,7 +134,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
 
         console.log("🔄 Loading theaters for branch:", formData.branchId)
 
-        const theatersData = await theaterService.getTheaters(formData.branchId)
+        const theatersData = await theaterService.getTheaters1(formData.branchId)
         console.log("✅ Theaters loaded:", theatersData)
 
         if (theatersData && theatersData.theaters) {
@@ -439,7 +439,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
                       <option value="">Select branch</option>
                       {branches.map((branch) => (
                           <option key={branch._id} value={branch._id}>
-                            {branch.name} - {branch.location?.city || "Unknown City"}
+                            {branch.name} - {branch.location?.province || "Unknown Province"}
                           </option>
                       ))}
                     </select>

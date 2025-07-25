@@ -12,6 +12,7 @@ const ShowtimeCard = ({ showtime }) => {
     };
 
     const formatTime = (timeString) => {
+        if (!timeString || typeof timeString !== 'string') return '--:--';
         // Convert 24-hour format to 12-hour format
         const [hours, minutes] = timeString.split(':');
         const hour = parseInt(hours);
@@ -38,7 +39,12 @@ const ShowtimeCard = ({ showtime }) => {
 
     // Get theater color
     const getTheaterColor = (theater) => {
-        switch (theater?.toLowerCase()) {
+        let theaterName = theater;
+        if (theater && typeof theater === 'object' && theater.name) {
+            theaterName = theater.name;
+        }
+        if (typeof theaterName !== 'string') return 'bg-indigo-100 text-indigo-800';
+        switch (theaterName.toLowerCase()) {
             case 'imax':
                 return 'bg-purple-100 text-purple-800';
             case 'vip':
@@ -78,7 +84,7 @@ const ShowtimeCard = ({ showtime }) => {
             <div className="p-4 border-b border-gray-200">
                 <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {showtime.movieTitle || showtime.movie?.title || 'Unknown Movie'}
+                        {showtime.movieTitle || (showtime.movie && typeof showtime.movie === 'object' ? showtime.movie.title : showtime.movie) || 'Unknown Movie'}
                     </h3>
                     {isToday() && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -92,7 +98,7 @@ const ShowtimeCard = ({ showtime }) => {
                 </div>
 
                 {/* Movie genre/rating if available */}
-                {showtime.movie && (
+                {showtime.movie && typeof showtime.movie === 'object' && (
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                         {showtime.movie.genre && (
                             <span className="bg-gray-100 px-2 py-1 rounded text-xs">
@@ -143,7 +149,8 @@ const ShowtimeCard = ({ showtime }) => {
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
-              {showtime.theater}
+              {/* Hiển thị tên rạp */}
+              {showtime.theater && typeof showtime.theater === 'object' ? showtime.theater.name : showtime.theater}
           </span>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(showtime.status)}`}>
             {showtime.status || 'Scheduled'}
@@ -182,10 +189,11 @@ const ShowtimeCard = ({ showtime }) => {
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                         <span className="text-sm text-gray-600">Ticket Price</span>
                         <span className="text-lg font-semibold text-gray-900">
-              {new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              }).format(showtime.price)}
+              {showtime.price && typeof showtime.price === 'object'
+                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(showtime.price.standard || 0)
+                : (typeof showtime.price === 'number'
+                  ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(showtime.price)
+                  : "--")}
             </span>
                     </div>
                 )}

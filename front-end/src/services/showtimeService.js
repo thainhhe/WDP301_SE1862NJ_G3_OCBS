@@ -128,20 +128,26 @@ export const showtimeService = {
     }
   },
 
-  // DELETE - Bulk delete multiple showtimes
+// Modify the bulkDeleteShowtimes function in showtimeService.js
   async bulkDeleteShowtimes(ids) {
     try {
       console.log("🔄 Bulk deleting showtimes:", ids)
 
+      // Match the backend API endpoint structure
       const response = await api.delete("/showtimes/bulk", {
-        data: { ids },
+        data: { ids } // Pass ids array in request body
       })
 
       console.log("✅ Showtimes bulk deleted successfully")
-      return response.data
+      return {
+        success: true,
+        deletedCount: response.data.deletedCount,
+        message: `Successfully deleted ${response.data.deletedCount} showtimes`
+      }
     } catch (error) {
       console.error("❌ Error bulk deleting showtimes:", error)
-      throw new Error("Failed to delete selected showtimes")
+      // Include the specific error message from the backend
+      throw new Error(error.response?.data?.message || "Failed to delete selected showtimes")
     }
   },
 
@@ -266,19 +272,19 @@ export const showtimeService = {
 export const movieService = {
   async getMovies(params = {}) {
     try {
-      console.log("🔄 Fetching movies with params:", params)
-      const response = await api.get("/movies", { params })
-      console.log("✅ Movies fetched successfully:", response.data)
-      return response.data
-    } catch (error) {
-      console.error("❌ Error fetching movies:", error)
-      // Return mock data if API fails
-      return {
-        movies: [
-          { _id: "1", title: "Sample Movie 1", duration: 120, genre: "Action", rating: "PG-13" },
-          { _id: "2", title: "Sample Movie 2", duration: 135, genre: "Drama", rating: "R" },
-        ],
+      console.log("🔄 Fetching movies with params:", params);
+
+      // Handle status array if provided
+      if (params.status && Array.isArray(params.status)) {
+        params.status = params.status.join(',');
       }
+
+      const response = await api.get("/movies", { params });
+      console.log("✅ Movies fetched successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching movies:", error);
+      throw new Error("Failed to fetch movies");
     }
   },
 }
@@ -293,21 +299,6 @@ export const branchService = {
       return response.data
     } catch (error) {
       console.error("❌ Error fetching branches:", error)
-      // Return mock data if API fails
-      return {
-        branches: [
-          {
-            _id: "6837e76a9b8c8c3c76374787",
-            name: "Downtown Cinema",
-            location: { city: "New York", address: "123 Main St" },
-          },
-          {
-            _id: "branch2",
-            name: "Mall Cinema",
-            location: { city: "Los Angeles", address: "456 Mall Ave" },
-          },
-        ],
-      }
     }
   },
 }
@@ -325,6 +316,40 @@ export const theaterService = {
 
       // Use the correct API endpoint format: /api/theaters/branch/{branchId}
       const response = await api.get(`/theaters/branch/${branchId}`)
+      console.log("✅ Theaters fetched successfully:", response.data)
+
+      // Handle different response structures
+      const theaters = response.data.theaters || response.data.data || response.data || []
+
+      return {
+        theaters: Array.isArray(theaters) ? theaters : [],
+        success: true,
+      }
+    } catch (error) {
+      console.error("❌ Error fetching theaters for branch:", branchId, error)
+
+      // Check if it's a 404 or no theaters found
+      if (error.response?.status === 404) {
+        console.log("ℹ️ No theaters found for branch:", branchId)
+        return { theaters: [], message: "No theaters found for this branch" }
+      }
+
+      // For other errors, throw to be handled by the component
+      throw new Error(error.response?.data?.message || `Failed to load theaters for branch ${branchId}`)
+    }
+  },
+
+  async getTheaters1(branchId = null) {
+    try {
+      if (!branchId) {
+        console.log("⚠️ No branchId provided for theater fetch")
+        return { theaters: [] }
+      }
+
+      console.log("🔄 Fetching theaters for branch:", branchId)
+
+      // Use the correct API endpoint format: /api/theaters/branch/{branchId}
+      const response = await api.get(`/theaters/branch1/${branchId}`)
       console.log("✅ Theaters fetched successfully:", response.data)
 
       // Handle different response structures

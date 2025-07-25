@@ -11,6 +11,9 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // @desc    Get all showtimes
 // @route   GET /api/showtimes
 // @access  Public
+// @desc    Get all showtimes
+// @route   GET /api/showtimes
+// @access  Public
 export const getAllShowtimes = async (req, res) => {
   try {
     const { movie, branch, theater, date, status } = req.query;
@@ -34,15 +37,28 @@ export const getAllShowtimes = async (req, res) => {
 
     const count = await Showtime.countDocuments(filter);
     const showtimes = await Showtime.find(filter)
-      .populate("movie", "title duration poster hotness")
-      .populate("branch", "name location")
-      .populate("theater", "name")
-      .sort({ startTime: 1 })
-      .limit(limit)
-      .skip((page - 1) * limit);
+        .populate("movie", "title duration poster hotness")
+        .populate("branch", "name location")
+        .populate("theater", "name")
+        .sort({ createdAt: -1 }) // Explicitly sort by creation time, newest first
+        .limit(limit)
+        .skip((page - 1) * limit);
+
+    // Tính totalSeats và bookedSeats cho từng showtime
+    const showtimesWithSeats = await Promise.all(showtimes.map(async (s) => {
+      // Tổng số ghế active của rạp này
+      const totalSeats = await Seat.countDocuments({ theater: s.theater._id, branch: s.branch._id, isActive: true });
+      // Số ghế đã đặt
+      const bookedSeats = await SeatStatus.countDocuments({ showtime: s._id, status: "booked" });
+      return {
+        ...s.toObject(),
+        totalSeats,
+        bookedSeats,
+      };
+    }));
 
     res.json({
-      showtimes,
+      showtimes: showtimesWithSeats,
       page,
       pages: Math.ceil(count / limit),
       total: count,

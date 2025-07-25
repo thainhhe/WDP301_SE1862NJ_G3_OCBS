@@ -252,6 +252,22 @@ const SeatSelection = ({
   const groupedSeats = groupSeatsByRow();
   const rowLabels = Object.keys(groupedSeats).sort();
 
+  if (rowLabels.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Không có ghế khả dụng cho suất chiếu này
+          </h3>
+          <Button onClick={fetchSeatAvailability} variant="outline">
+            Thử lại
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Reservation Timer */}

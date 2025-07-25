@@ -33,12 +33,48 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ShowtimeForm from "../../components/admin/ShowtimeForm"
-import { showtimeService, movieService } from "../../services/showtimeService"
+import { showtimeService, movieService,branchService,theaterService } from "../../services/showtimeService"
 import { formatVND } from "../../utils/currencyUtils"
 
 const AdminShowtimes = () => {
+  const getShowtimeStatus = (showtime) => {
+    const now = new Date()
+    const startTime = new Date(showtime.startTime)
+    const endTime = new Date(showtime.endTime)
+
+    if (now < startTime) return "scheduled"
+    if (now >= startTime && now <= endTime) return "ongoing"
+    if (now > endTime) return "completed"
+    return "scheduled"
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "scheduled":
+        return "bg-blue-100 text-blue-800"
+      case "ongoing":
+        return "bg-green-100 text-green-800"
+      case "completed":
+        return "bg-gray-100 text-gray-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const formatDateTime = (dateTimeString) => {
+    const date = new Date(dateTimeString)
+    return date.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
   const [showtimes, setShowtimes] = useState([])
   const [movies, setMovies] = useState([])
+  const [branch, setBranches] = useState([])
+  const [theater, setTheateres] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -53,7 +89,11 @@ const AdminShowtimes = () => {
     branchId: "all",
     theaterId: "all",
     date: "",
-    search: "",
+    status: "scheduled",
+  })
+  const filteredShowtimes = showtimes.filter((showtime) => {
+    const status = getShowtimeStatus(showtime)
+    return filters.status === "all" || status === filters.status
   })
   const [pagination, setPagination] = useState({
     page: 1,
@@ -75,6 +115,7 @@ const AdminShowtimes = () => {
   })
 
   useEffect(() => {
+
     fetchData()
   }, [filters, pagination.page])
 
@@ -94,19 +135,20 @@ const AdminShowtimes = () => {
       const searchParams = {
         page: pagination.page,
         limit: 50,
-        query: filters.search,
-        movieId: filters.movieId !== "all" ? filters.movieId : undefined,
-        branchId: filters.branchId !== "all" ? filters.branchId : undefined,
-        theaterId: filters.theaterId !== "all" ? filters.theaterId : undefined,
-        dateFrom: filters.date ? filters.date : undefined,
-        dateTo: filters.date ? filters.date : undefined,
+        movie: filters.movieId !== "all" ? filters.movieId : undefined,
+        branch: filters.branchId !== "all" ? filters.branchId : undefined,
+        theater: filters.theaterId !== "all" ? filters.theaterId : undefined,
+        date: filters.date || undefined,
         sort: "-createdAt",
       }
-
+      Object.keys(searchParams).forEach(key =>
+          searchParams[key] === undefined && delete searchParams[key]
+      )
       // Fetch data using enhanced CRUD operations
-      const [showtimesResult, moviesResult, statsResult] = await Promise.allSettled([
-        showtimeService.searchShowtimes(searchParams),
+      const [showtimesResult, moviesResult, branchesResult, statsResult] = await Promise.allSettled([
+        showtimeService.getShowtimes(searchParams),
         movieService.getMovies({ limit: 100 }),
+        branchService.getBranches(),
         showtimeService.getShowtimeStats(),
       ])
 
@@ -137,7 +179,25 @@ const AdminShowtimes = () => {
         console.warn("⚠️ Failed to load movies:", moviesResult.reason)
         setMovies([])
       }
+      // Handle branches data
+      if (branchesResult.status === "fulfilled") {
+        const branchesData = branchesResult.value
+        const branchesList = branchesData?.branches || []
+        setBranches(branchesList)
+        console.log("✅ Branches loaded:", branchesList.length)
 
+        // If a branch is selected, fetch its theaters
+        if (filters.branchId !== "all") {
+          const theatersResult = await theaterService.getTheaters(filters.branchId)
+          setTheateres(theatersResult.theaters || [])
+          console.log("✅ Theaters loaded:", theatersResult.theaters?.length || 0)
+        } else {
+          setTheateres([])
+        }
+      } else {
+        console.warn("⚠️ Failed to load branches:", branchesResult.reason)
+        setBranches([])
+      }
       // Handle stats data
       if (statsResult.status === "fulfilled") {
         setStats(statsResult.value)
@@ -150,12 +210,32 @@ const AdminShowtimes = () => {
       setError("Failed to load data. Please try again.")
       setShowtimes([])
       setMovies([])
+      setBranches([])
+      setTheateres([])
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
+  useEffect(() => {
+    const loadTheaters = async () => {
+      if (filters.branchId !== "all") {
+        try {
+          const result = await theaterService.getTheaters(filters.branchId)
+          setTheateres(result.theaters || [])
+          // Reset theater filter when changing branch
+          handleFilterChange("theaterId", "all")
+        } catch (error) {
+          console.error("Error loading theaters:", error)
+          setTheateres([])
+        }
+      } else {
+        setTheateres([])
+      }
+    }
 
+    loadTheaters()
+  }, [filters.branchId])
   // Enhanced CRUD operations
   const handleCreateShowtime = () => {
     console.log("🆕 Opening create showtime form")
@@ -296,47 +376,10 @@ const AdminShowtimes = () => {
     await fetchData(true)
   }, [])
 
-  // Helper functions for database structure
-  const getShowtimeStatus = (showtime) => {
-    const now = new Date()
-    const startTime = new Date(showtime.startTime)
-    const endTime = new Date(showtime.endTime)
-
-    if (now < startTime) return "scheduled"
-    if (now >= startTime && now <= endTime) return "ongoing"
-    if (now > endTime) return "completed"
-    return "scheduled"
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-100 text-blue-800"
-      case "ongoing":
-        return "bg-green-100 text-green-800"
-      case "completed":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const formatDateTime = (dateTimeString) => {
-    const date = new Date(dateTimeString)
-    return date.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 
   const formatPrice = formatVND
 
-  // Get unique branches and theaters for filters
-  const uniqueBranches = [...new Set(showtimes.map((s) => s.branch?.name).filter(Boolean))]
-  const uniqueTheaters = [...new Set(showtimes.map((s) => s.theater?.name).filter(Boolean))]
+
 
   if (loading && showtimes.length === 0) {
     return (
@@ -414,7 +457,7 @@ const AdminShowtimes = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Movie</label>
                 <Select value={filters.movieId} onValueChange={(value) => handleFilterChange("movieId", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All movies" />
+                    <SelectValue placeholder="All movies"/>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All movies</SelectItem>
@@ -431,13 +474,13 @@ const AdminShowtimes = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Branch</label>
                 <Select value={filters.branchId} onValueChange={(value) => handleFilterChange("branchId", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All branches" />
+                    <SelectValue placeholder="All branches"/>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All branches</SelectItem>
-                    {uniqueBranches.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
+                    {branch.map((b) => (
+                        <SelectItem key={b._id} value={b._id}>
+                          {b.name}
                         </SelectItem>
                     ))}
                   </SelectContent>
@@ -446,39 +489,44 @@ const AdminShowtimes = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Theater</label>
-                <Select value={filters.theaterId} onValueChange={(value) => handleFilterChange("theaterId", value)}>
+                <Select
+                    value={filters.theaterId}
+                    onValueChange={(value) => handleFilterChange("theaterId", value)}
+                    disabled={filters.branchId === "all"}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="All theaters" />
+                    <SelectValue placeholder={filters.branchId === "all" ? "Select a branch first" : "All theaters"}/>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All theaters</SelectItem>
-                    {uniqueTheaters.map((theater) => (
-                        <SelectItem key={theater} value={theater}>
-                          {theater}
+                    {theater.map((t) => (
+                        <SelectItem key={t._id} value={t._id}>
+                          {t.name}
                         </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status"/>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="ongoing">Ongoing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <Input type="date" value={filters.date} onChange={(e) => handleFilterChange("date", e.target.value)} />
+                <Input type="date" value={filters.date} onChange={(e) => handleFilterChange("date", e.target.value)}/>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                      type="text"
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange("search", e.target.value)}
-                      placeholder="Search showtimes..."
-                      className="pl-10"
-                  />
-                </div>
-              </div>
+
             </div>
           </CardContent>
         </Card>
@@ -489,7 +537,7 @@ const AdminShowtimes = () => {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-                  <Clock className="w-6 h-6" />
+                  <Clock className="w-6 h-6"/>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Showtimes</p>
@@ -503,7 +551,7 @@ const AdminShowtimes = () => {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-full bg-green-100 text-green-600">
-                  <Calendar className="w-6 h-6" />
+                  <Calendar className="w-6 h-6"/>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Today's Shows</p>
@@ -528,7 +576,7 @@ const AdminShowtimes = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Branches</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.branches || uniqueBranches.length}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.branches || branch.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -570,7 +618,7 @@ const AdminShowtimes = () => {
         {/* Showtimes Grid */}
         {showtimes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {showtimes.map((showtime) => {
+              {filteredShowtimes.map((showtime) => {
                 const status = getShowtimeStatus(showtime)
                 const isSelected = selectedShowtimes.includes(showtime._id)
 
@@ -689,8 +737,7 @@ const AdminShowtimes = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No showtimes found</h3>
                 <p className="text-gray-500 mb-4">
-                  {filters.search ||
-                  filters.movieId !== "all" ||
+                  {filters.movieId !== "all" ||
                   filters.branchId !== "all" ||
                   filters.theaterId !== "all" ||
                   filters.date

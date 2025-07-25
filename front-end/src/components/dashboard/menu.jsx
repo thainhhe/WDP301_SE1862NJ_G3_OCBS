@@ -8,7 +8,7 @@ import EventSeatIcon from "@mui/icons-material/EventSeat";
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import FastfoodIcon from '@mui/icons-material/Fastfood';
 import TheatersIcon from "@mui/icons-material/Theaters";
-import BranchIcon from '@mui/icons-material/Theaters';
+import BranchIcon from '@mui/icons-material/AccountTree';
 
 const navConfig = [
   {
@@ -47,6 +47,17 @@ const navConfig = [
   },
   {
     type: "item",
+    text: "Theater",
+    path: "/admin/theaters",
+    icon: <TheatersIcon />,
+  },  {
+    type: "item",
+    text: "Branch",
+    path: "/admin/branchs",
+    icon: <BranchIcon />,
+  },
+  {
+    type: "item",
     text: "Voucher",
     icon: <ConfirmationNumberIcon />,
     path: "/admin/vouchers",
@@ -57,17 +68,7 @@ const navConfig = [
     icon: <FastfoodIcon />,
     path: "/admin/combos",
   },
-  {
-    type: "item",
-    text: "Theater",
-    path: "/admin/theaters",
-    icon: <TheatersIcon />,
-  },  {
-    type: "item",
-    text: "Branch",
-    path: "/admin/branchs",
-    icon: <TheatersIcon />,
-  }
+
 ];
 
 export default navConfig;
