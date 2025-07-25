@@ -47,6 +47,17 @@ const navConfig = [
   },
   {
     type: "item",
+    text: "Theater",
+    path: "/admin/theaters",
+    icon: <TheatersIcon />,
+  },  {
+    type: "item",
+    text: "Branch",
+    path: "/admin/branchs",
+    icon: <BranchIcon />,
+  },
+  {
+    type: "item",
     text: "Voucher",
     icon: <ConfirmationNumberIcon />,
     path: "/admin/vouchers",
@@ -57,17 +68,7 @@ const navConfig = [
     icon: <FastfoodIcon />,
     path: "/admin/combos",
   },
-  {
-    type: "item",
-    text: "Theater",
-    path: "/admin/theaters",
-    icon: <TheatersIcon />,
-  },  {
-    type: "item",
-    text: "Branch",
-    path: "/admin/branchs",
-    icon: <BranchIcon />,
-  }
+
 ];
 
 export default navConfig;

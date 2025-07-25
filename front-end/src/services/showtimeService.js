@@ -128,20 +128,26 @@ export const showtimeService = {
     }
   },
 
-  // DELETE - Bulk delete multiple showtimes
+// Modify the bulkDeleteShowtimes function in showtimeService.js
   async bulkDeleteShowtimes(ids) {
     try {
       console.log("🔄 Bulk deleting showtimes:", ids)
 
+      // Match the backend API endpoint structure
       const response = await api.delete("/showtimes/bulk", {
-        data: { ids },
+        data: { ids } // Pass ids array in request body
       })
 
       console.log("✅ Showtimes bulk deleted successfully")
-      return response.data
+      return {
+        success: true,
+        deletedCount: response.data.deletedCount,
+        message: `Successfully deleted ${response.data.deletedCount} showtimes`
+      }
     } catch (error) {
       console.error("❌ Error bulk deleting showtimes:", error)
-      throw new Error("Failed to delete selected showtimes")
+      // Include the specific error message from the backend
+      throw new Error(error.response?.data?.message || "Failed to delete selected showtimes")
     }
   },
 

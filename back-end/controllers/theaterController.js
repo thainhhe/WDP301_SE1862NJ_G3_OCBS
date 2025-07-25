@@ -135,7 +135,7 @@ const getAllTheaters = asyncHandler(async (req, res) => {
 });
 export {
   createTheater,
-    getAllTheaters,
+  getAllTheaters,
   getTheatersByBranch,
   getTheaterById,
   updateTheater,

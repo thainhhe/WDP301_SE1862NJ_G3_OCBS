@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ShowtimeForm from "../../components/admin/ShowtimeForm"
-import { showtimeService, movieService } from "../../services/showtimeService"
+import { showtimeService, movieService,branchService,theaterService } from "../../services/showtimeService"
 import { formatVND } from "../../utils/currencyUtils"
 
 const AdminShowtimes = () => {
@@ -73,6 +73,8 @@ const AdminShowtimes = () => {
   }
   const [showtimes, setShowtimes] = useState([])
   const [movies, setMovies] = useState([])
+  const [branch, setBranches] = useState([])
+  const [theater, setTheateres] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -113,6 +115,7 @@ const AdminShowtimes = () => {
   })
 
   useEffect(() => {
+
     fetchData()
   }, [filters, pagination.page])
 
@@ -132,18 +135,20 @@ const AdminShowtimes = () => {
       const searchParams = {
         page: pagination.page,
         limit: 50,
-        movieId: filters.movieId !== "all" ? filters.movieId : undefined,
-        branchId: filters.branchId !== "all" ? filters.branchId : undefined,
-        theaterId: filters.theaterId !== "all" ? filters.theaterId : undefined,
-        dateFrom: filters.date ? filters.date : undefined,
-        dateTo: filters.date ? filters.date : undefined,
+        movie: filters.movieId !== "all" ? filters.movieId : undefined,
+        branch: filters.branchId !== "all" ? filters.branchId : undefined,
+        theater: filters.theaterId !== "all" ? filters.theaterId : undefined,
+        date: filters.date || undefined,
         sort: "-createdAt",
       }
-
+      Object.keys(searchParams).forEach(key =>
+          searchParams[key] === undefined && delete searchParams[key]
+      )
       // Fetch data using enhanced CRUD operations
-      const [showtimesResult, moviesResult, statsResult] = await Promise.allSettled([
-        showtimeService.searchShowtimes(searchParams),
+      const [showtimesResult, moviesResult, branchesResult, statsResult] = await Promise.allSettled([
+        showtimeService.getShowtimes(searchParams),
         movieService.getMovies({ limit: 100 }),
+        branchService.getBranches(),
         showtimeService.getShowtimeStats(),
       ])
 
@@ -174,7 +179,25 @@ const AdminShowtimes = () => {
         console.warn("⚠️ Failed to load movies:", moviesResult.reason)
         setMovies([])
       }
+      // Handle branches data
+      if (branchesResult.status === "fulfilled") {
+        const branchesData = branchesResult.value
+        const branchesList = branchesData?.branches || []
+        setBranches(branchesList)
+        console.log("✅ Branches loaded:", branchesList.length)
 
+        // If a branch is selected, fetch its theaters
+        if (filters.branchId !== "all") {
+          const theatersResult = await theaterService.getTheaters(filters.branchId)
+          setTheateres(theatersResult.theaters || [])
+          console.log("✅ Theaters loaded:", theatersResult.theaters?.length || 0)
+        } else {
+          setTheateres([])
+        }
+      } else {
+        console.warn("⚠️ Failed to load branches:", branchesResult.reason)
+        setBranches([])
+      }
       // Handle stats data
       if (statsResult.status === "fulfilled") {
         setStats(statsResult.value)
@@ -187,12 +210,32 @@ const AdminShowtimes = () => {
       setError("Failed to load data. Please try again.")
       setShowtimes([])
       setMovies([])
+      setBranches([])
+      setTheateres([])
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
+  useEffect(() => {
+    const loadTheaters = async () => {
+      if (filters.branchId !== "all") {
+        try {
+          const result = await theaterService.getTheaters(filters.branchId)
+          setTheateres(result.theaters || [])
+          // Reset theater filter when changing branch
+          handleFilterChange("theaterId", "all")
+        } catch (error) {
+          console.error("Error loading theaters:", error)
+          setTheateres([])
+        }
+      } else {
+        setTheateres([])
+      }
+    }
 
+    loadTheaters()
+  }, [filters.branchId])
   // Enhanced CRUD operations
   const handleCreateShowtime = () => {
     console.log("🆕 Opening create showtime form")
@@ -336,9 +379,7 @@ const AdminShowtimes = () => {
 
   const formatPrice = formatVND
 
-  // Get unique branches and theaters for filters
-  const uniqueBranches = [...new Set(showtimes.map((s) => s.branch?.name).filter(Boolean))]
-  const uniqueTheaters = [...new Set(showtimes.map((s) => s.theater?.name).filter(Boolean))]
+
 
   if (loading && showtimes.length === 0) {
     return (
@@ -437,9 +478,9 @@ const AdminShowtimes = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All branches</SelectItem>
-                    {uniqueBranches.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
+                    {branch.map((b) => (
+                        <SelectItem key={b._id} value={b._id}>
+                          {b.name}
                         </SelectItem>
                     ))}
                   </SelectContent>
@@ -448,15 +489,19 @@ const AdminShowtimes = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Theater</label>
-                <Select value={filters.theaterId} onValueChange={(value) => handleFilterChange("theaterId", value)}>
+                <Select
+                    value={filters.theaterId}
+                    onValueChange={(value) => handleFilterChange("theaterId", value)}
+                    disabled={filters.branchId === "all"}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="All theaters"/>
+                    <SelectValue placeholder={filters.branchId === "all" ? "Select a branch first" : "All theaters"}/>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All theaters</SelectItem>
-                    {uniqueTheaters.map((theater) => (
-                        <SelectItem key={theater} value={theater}>
-                          {theater}
+                    {theater.map((t) => (
+                        <SelectItem key={t._id} value={t._id}>
+                          {t.name}
                         </SelectItem>
                     ))}
                   </SelectContent>
@@ -506,7 +551,7 @@ const AdminShowtimes = () => {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-full bg-green-100 text-green-600">
-                  <Calendar className="w-6 h-6" />
+                  <Calendar className="w-6 h-6"/>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Today's Shows</p>
@@ -531,7 +576,7 @@ const AdminShowtimes = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Branches</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.branches || uniqueBranches.length}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.branches || branch.length}</p>
                 </div>
               </div>
             </CardContent>
