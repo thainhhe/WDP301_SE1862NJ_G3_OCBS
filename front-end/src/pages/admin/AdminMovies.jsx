@@ -223,7 +223,7 @@ const AdminMovies = () => {
         Movie Management
       </Typography>
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item size={{xs: 12, sm: 6, md: 4}}>
           <Card
             elevation={2}
             sx={{ display: "flex", alignItems: "center", p: 2 }}
@@ -237,7 +237,7 @@ const AdminMovies = () => {
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item size={{xs: 12, sm: 6, md: 4}}>
           <Card
             elevation={2}
             sx={{ display: "flex", alignItems: "center", p: 2 }}
@@ -251,7 +251,7 @@ const AdminMovies = () => {
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item size={{xs: 12, sm: 6, md: 4}}>
           <Button
             fullWidth
             variant="contained"
@@ -264,13 +264,13 @@ const AdminMovies = () => {
         </Grid>
       </Grid>
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={4}>
+        <Grid item size={{xs: 12}}>
           <Paper elevation={2} sx={{ p: 3, mb: 3, minWidth: 250 }}>
             <Typography variant="h6" gutterBottom>
               Filters
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid item size={{xs: 12, md: 4}}>
                 <TextField
                   select
                   fullWidth
@@ -294,7 +294,7 @@ const AdminMovies = () => {
                   <MenuItem value="ended">Ended</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item size={{xs: 12, md: 4}}>
                 <TextField
                   select
                   fullWidth
@@ -323,7 +323,7 @@ const AdminMovies = () => {
                   <MenuItem value="Thriller">Thriller</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item size={{xs: 12, md: 4}}>
                 <TextField
                   fullWidth
                   size="medium"
@@ -341,7 +341,7 @@ const AdminMovies = () => {
             </Grid>
           </Paper>
         </Grid>
-        <Grid item xs={12} lg={8}>
+        <Grid item size={{xs: 12}}>
           <Paper elevation={2} sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Movies ({pagination.total})
@@ -355,7 +355,7 @@ const AdminMovies = () => {
                   justifyContent={movies.length === 1 ? "center" : "flex-start"}
                 >
                   {movies.map((movie) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={movie._id}>
+                    <Grid item size={{xs: 12, sm: 6, md: 4, lg: 3}} key={movie._id}>
                       <Card
                         elevation={2}
                         sx={{
@@ -407,17 +407,6 @@ const AdminMovies = () => {
                               }}
                             >
                               <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteMovie(movie)}
-                              sx={{
-                                bgcolor: "error.main",
-                                color: "white",
-                                "&:hover": { bgcolor: "error.dark" },
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Box>
                           <Box sx={{ position: "absolute", top: 8, left: 8 }}>

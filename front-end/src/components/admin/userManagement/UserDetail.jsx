@@ -3,6 +3,7 @@ import { Box, Typography, Tabs, Tab, CircularProgress, Avatar, Stack, Chip, Divi
 import PersonIcon from '@mui/icons-material/Person';
 import HistoryIcon from '@mui/icons-material/History';
 import { userService } from '@services/userService';
+import { bookingService } from '@services/bookingService';
 
 const TabPanel = (props) => {
     const { children, value, index, ...other } = props;
@@ -24,6 +25,34 @@ const ProfileInfo = ({ user }) => (
         <Chip label={user.role} color={user.role === 'admin' ? 'error' : user.role === 'employee' ? 'warning' : 'success'} size="small" />
     </Stack>
 );
+
+const BookingHistory = ({ userId }) => {
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        if (!userId) return;
+        setLoading(true);
+        bookingService.getBookingsByUserId(userId)
+            .then(res => setBookings(res.bookings || []))
+            .catch(() => setBookings([]))
+            .finally(() => setLoading(false));
+    }, [userId]);
+    if (loading) return <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress /></Box>;
+    if (!bookings.length) return <Typography sx={{ p: 3, textAlign: 'center' }}>No booking history found.</Typography>;
+    return (
+        <Box sx={{ p: 1 }}>
+            {bookings.map(b => (
+                <Box key={b._id} sx={{ mb: 2, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+                    <Typography fontWeight="bold">{b.showtime?.movie?.title || 'Movie'}</Typography>
+                    <Typography variant="body2">Showtime: {b.showtime && new Date(b.showtime.startTime).toLocaleString()}</Typography>
+                    <Typography variant="body2">Seats: {b.seats?.map(s => s.row + s.number).join(', ')}</Typography>
+                    <Typography variant="body2">Amount: {b.totalAmount?.toLocaleString()} VND</Typography>
+                    <Typography variant="body2">Status: {b.bookingStatus}</Typography>
+                </Box>
+            ))}
+        </Box>
+    );
+};
 
 const UserDetail = ({ userId, onEdit }) => {
     const [user, setUser] = useState(null);
@@ -67,7 +96,7 @@ const UserDetail = ({ userId, onEdit }) => {
                 </Tabs>
             </Box>
             <TabPanel value={tabValue} index={0}><ProfileInfo user={user} /></TabPanel>
-            <TabPanel value={tabValue} index={1}><Typography>Booking history will be displayed here.</Typography></TabPanel>
+            <TabPanel value={tabValue} index={1}><BookingHistory userId={userId} /></TabPanel>
         </Box>
     );
 };

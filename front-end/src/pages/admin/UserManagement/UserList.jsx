@@ -35,7 +35,7 @@ const filterOptions = [
         options: [
             { value: 'admin', label: 'Admin' },
             { value: 'employee', label: 'Employee' },
-            { value: 'user', label: 'User' },
+            { value: 'customer', label: 'Customer' },
         ]
     }
 ];
@@ -123,7 +123,7 @@ const UserListPage = () => {
                 )}
                 {(offcanvasMode === 'create' || offcanvasMode === 'edit') && (
                     <UserForm
-                        onSubmit={handleFormSubmit}
+                        onFormSubmit={handleFormSubmit}
                         onCancel={handleCloseOffcanvas}
                         initialData={selectedUser}
                         isSubmitting={isSubmitting}

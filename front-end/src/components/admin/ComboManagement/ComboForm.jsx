@@ -18,7 +18,7 @@ const comboSchema = z.object({
     name: z.string().min(1, 'Combo name is required'),
     description: z.string().min(1, 'Description is required'),
     price: z.coerce.number().positive('Price must be a positive number'),
-    image: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+    image: z.string().optional().or(z.literal('')),
     category: z.enum(['combo', 'popcorn', 'drinks', 'snacks']),
     isActive: z.boolean(),
     items: z.array(itemSchema).min(1, 'At least one item is required'),
@@ -113,11 +113,25 @@ const ComboForm = ({ open, onClose, onSave, combo }) => {
     };
 
     const handleFormSubmit = async (data) => {
-        let imageUrl = data.image;
-        if (imageFile) {
-            imageUrl = await uploadImageFile();
+        try {
+            let imageUrl = data.image;
+            if (imageFile) {
+                const uploadedUrl = await uploadImageFile();
+                if (uploadedUrl) {
+                    imageUrl = uploadedUrl;
+                }
+            }
+
+            const comboData = {
+                ...data,
+                image: imageUrl,
+                _id: combo?._id // Include the ID if we're editing
+            };
+
+            onSave(comboData);
+        } catch (error) {
+            console.error('Error submitting form:', error);
         }
-        onSave({ ...data, image: imageUrl });
     };
 
     return (

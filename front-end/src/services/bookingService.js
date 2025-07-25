@@ -74,6 +74,17 @@ export const bookingService = {
       throw new Error("Failed to fetch bookings for employee");
     }
   },
+
+  // Get bookings by userId (for admin)
+  async getBookingsByUserId(userId) {
+    try {
+      const response = await api.get(`/bookings/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching bookings by userId:", error);
+      throw new Error("Failed to fetch bookings for user");
+    }
+  },
 };
 
 export const paymentService = {

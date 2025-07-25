@@ -10,9 +10,12 @@ const VoucherInput = ({ voucher, setVoucher, setError, combos, seatTotal }) => {
     setLoading(true);
     setError("");
     try {
+      const now = new Date();
       const res = await voucherService.getVoucherByCode(input);
       if (!res || !res.isActive) throw new Error("Voucher is invalid or expired.");
-      // Check minPurchase
+      const startDate = new Date(res.startDate);
+      const endDate = new Date(res.endDate);
+      if (startDate > now || endDate < now) throw new Error("Voucher is invalid or expired.");
       const comboTotal = combos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
       const subtotal = (seatTotal || 0) + comboTotal;
       if (res.minPurchase && subtotal < res.minPurchase) {
@@ -47,4 +50,4 @@ const VoucherInput = ({ voucher, setVoucher, setError, combos, seatTotal }) => {
   );
 };
 
-export default VoucherInput; 
+export default VoucherInput;
