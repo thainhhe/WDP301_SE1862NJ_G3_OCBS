@@ -24,7 +24,7 @@ const createBooking = asyncHandler(async (req, res) => {
   let customerInfoData = undefined;
   if (employeeMode) {
     employeeId = req.user._id;
-    userId = null; // Đặt vé cho khách chưa có tài khoản
+    userId = req.user._id; // Đặt vé cho khách, nhưng user là nhân viên
     if (customerInfo) customerInfoData = customerInfo;
   }
 
@@ -34,18 +34,34 @@ const createBooking = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error("Showtime not found");
     }
+    // Prevent booking if showtime has started
+    if (showtime.startTime <= new Date()) {
+      res.status(400);
+      throw new Error("Showtime has already started. Cannot book tickets.");
+    }
 
-    const seatStatuses = await SeatStatus.find({
-      showtime: showtimeId,
-      seat: { $in: seatIds },
-      status: "reserved",
-      reservedBy: userId,
-      reservationExpires: { $gt: new Date() },
-    }).populate("seat");
+    let seatStatuses;
+    if (employeeMode) {
+      // Cho phép nhân viên đặt ghế 'available' hoặc 'reserved', không kiểm tra reservedBy
+      seatStatuses = await SeatStatus.find({
+        showtime: showtimeId,
+        seat: { $in: seatIds },
+        status: { $in: ["available", "reserved"] }
+      }).populate("seat");
+    } else {
+      // Khách hàng vẫn phải reserve trước
+      seatStatuses = await SeatStatus.find({
+        showtime: showtimeId,
+        seat: { $in: seatIds },
+        status: "reserved",
+        reservedBy: userId,
+        reservationExpires: { $gt: new Date() },
+      }).populate("seat");
+    }
 
     if (seatStatuses.length !== seatIds.length) {
       res.status(400);
-      throw new Error("Some selected seats are no longer reserved. Please try again.");
+      throw new Error("Some selected seats are no longer available. Please try again.");
     }
 
     // 1. Tính tổng giá vé
@@ -242,7 +258,12 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
     throw new Error("Booking not found");
   }
 
-  if (booking.user._id.toString() !== req.user._id.toString()) {
+  if (
+    (booking.user && booking.user._id && booking.user._id.toString() === req.user._id.toString()) ||
+    (booking.employeeId && booking.employeeId.toString() === req.user._id.toString())
+  ) {
+    // authorized
+  } else {
     res.status(403);
     throw new Error("Not authorized to update this booking");
   }
@@ -266,8 +287,8 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
       bookingId: booking._id,
     });
 
-    // Gửi email xác nhận vé cho user
-    if (booking.user && booking.user.email) {
+    // Gửi email xác nhận vé cho user (chỉ gửi nếu không phải nhân viên đặt)
+    if (!booking.employeeId && booking.user && booking.user.email) {
       // Tạo QR code buffer để đính kèm
       const qrData = booking._id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, { type: 'png', width: 300 });
