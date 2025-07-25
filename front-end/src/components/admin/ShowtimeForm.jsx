@@ -134,7 +134,7 @@ const ShowtimeForm = ({ showtime, onSubmit, onCancel }) => {
 
         console.log("🔄 Loading theaters for branch:", formData.branchId)
 
-        const theatersData = await theaterService.getTheaters(formData.branchId)
+        const theatersData = await theaterService.getTheaters1(formData.branchId)
         console.log("✅ Theaters loaded:", theatersData)
 
         if (theatersData && theatersData.theaters) {

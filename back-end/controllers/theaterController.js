@@ -44,14 +44,23 @@ const createTheater = asyncHandler(async (req, res) => {
  */
 const getTheatersByBranch = asyncHandler(async (req, res) => {
   const { branchId } = req.params;
-  // Find all theaters where the 'branch' field matches the provided branchId
-  const theaters = await Theater.find({ branch: branchId });
-  if (theaters) {
-    res.json(theaters);
-  } else {
-    // If no theaters are found, return an empty array instead of a 404 error
-    res.json([]);
-  }
+  // Find theaters where branch matches and seatLayout exists
+  const theaters = await Theater.find({
+    branch: branchId,
+    //seatLayout: { $ne: null }
+  });
+
+  res.json(theaters || []);
+});
+const getTheatersByBranch1 = asyncHandler(async (req, res) => {
+  const { branchId } = req.params;
+  // Find theaters where branch matches and seatLayout exists
+  const theaters = await Theater.find({
+    branch: branchId,
+    seatLayout: { $ne: null }
+  });
+
+  res.json(theaters || []);
 });
 
 /**
@@ -140,4 +149,5 @@ export {
   getTheaterById,
   updateTheater,
   deleteTheater,
+    getTheatersByBranch1
 };
