@@ -266,19 +266,19 @@ export const showtimeService = {
 export const movieService = {
   async getMovies(params = {}) {
     try {
-      console.log("🔄 Fetching movies with params:", params)
-      const response = await api.get("/movies", { params })
-      console.log("✅ Movies fetched successfully:", response.data)
-      return response.data
-    } catch (error) {
-      console.error("❌ Error fetching movies:", error)
-      // Return mock data if API fails
-      return {
-        movies: [
-          { _id: "1", title: "Sample Movie 1", duration: 120, genre: "Action", rating: "PG-13" },
-          { _id: "2", title: "Sample Movie 2", duration: 135, genre: "Drama", rating: "R" },
-        ],
+      console.log("🔄 Fetching movies with params:", params);
+
+      // Handle status array if provided
+      if (params.status && Array.isArray(params.status)) {
+        params.status = params.status.join(',');
       }
+
+      const response = await api.get("/movies", { params });
+      console.log("✅ Movies fetched successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching movies:", error);
+      throw new Error("Failed to fetch movies");
     }
   },
 }

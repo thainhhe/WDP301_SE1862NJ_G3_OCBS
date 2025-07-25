@@ -11,6 +11,9 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // @desc    Get all showtimes
 // @route   GET /api/showtimes
 // @access  Public
+// @desc    Get all showtimes
+// @route   GET /api/showtimes
+// @access  Public
 export const getAllShowtimes = async (req, res) => {
   try {
     const { movie, branch, theater, date, status } = req.query;
@@ -34,12 +37,12 @@ export const getAllShowtimes = async (req, res) => {
 
     const count = await Showtime.countDocuments(filter);
     const showtimes = await Showtime.find(filter)
-      .populate("movie", "title duration poster hotness")
-      .populate("branch", "name location")
-      .populate("theater", "name")
-      .sort({ startTime: 1 })
-      .limit(limit)
-      .skip((page - 1) * limit);
+        .populate("movie", "title duration poster hotness")
+        .populate("branch", "name location")
+        .populate("theater", "name")
+        .sort({ createdAt: -1 }) // Explicitly sort by creation time, newest first
+        .limit(limit)
+        .skip((page - 1) * limit);
 
     res.json({
       showtimes,

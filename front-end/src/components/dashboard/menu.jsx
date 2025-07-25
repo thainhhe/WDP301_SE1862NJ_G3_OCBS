@@ -8,7 +8,7 @@ import EventSeatIcon from "@mui/icons-material/EventSeat";
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import FastfoodIcon from '@mui/icons-material/Fastfood';
 import TheatersIcon from "@mui/icons-material/Theaters";
-import BranchIcon from '@mui/icons-material/Theaters';
+import BranchIcon from '@mui/icons-material/AccountTree';
 
 const navConfig = [
   {
@@ -66,7 +66,7 @@ const navConfig = [
     type: "item",
     text: "Branch",
     path: "/admin/branchs",
-    icon: <TheatersIcon />,
+    icon: <BranchIcon />,
   }
 ];
 
