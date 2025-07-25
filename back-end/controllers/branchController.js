@@ -9,7 +9,19 @@ const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 // @route   GET /api/branches
 // @access  Public
 export const getAllBranches = asyncHandler(async (req, res) => {
-    const branches = await Branch.find({}).sort({ name: 1 });
+    const { name, location_province } = req.query;
+    const filter = {};
+
+    // Add name filter if provided
+    if (name) {
+        filter.name = { $regex: name, $options: 'i' };
+    }
+    // Add location province filter if provided
+    if (location_province) {
+        filter['location.province'] = location_province;
+    }
+
+    const branches = await Branch.find(filter).sort({ name: 1 });
     res.json(branches);
 });
 

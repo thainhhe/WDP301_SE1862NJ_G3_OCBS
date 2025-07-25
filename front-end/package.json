@@ -28,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
     "install": "^0.13.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.515.0",
     "npm": "^11.4.2",
     "prop-types": "^15.8.1",

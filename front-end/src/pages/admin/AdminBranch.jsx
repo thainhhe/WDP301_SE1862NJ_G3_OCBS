@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, Edit, Trash2, MapPin, Clock, Building, AlertCircle, Phone, Mail, Eye, Theater } from "lucide-react"
+import { Plus, Edit, Trash2, MapPin, Clock, Building, AlertCircle, Phone, Mail, Eye } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,11 +20,9 @@ import { DataTable } from "@/components/ui/data-table"
 import BranchForm from "@/components/admin/BranchForm"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import { branchService } from "../../services/branchService"
-import { theaterService } from "../../services/theaterService"
 
 const AdminBranches = () => {
   const [branches, setBranches] = useState([])
-  const [theaters, setTheaters] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showFormModal, setShowFormModal] = useState(false)
@@ -36,41 +34,34 @@ const AdminBranches = () => {
 
   const [filters, setFilters] = useState({
     search: "",
-    isActive: "all",
+    province: "all",
     city: "all",
+    isActive: "all"
   })
-  const [availableCities, setAvailableCities] = useState([])
-
+  const [availableProvinces, setAvailableProvinces] = useState([])
   const fetchBranches = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      // Get all branches without backend filtering
-      const params = {
-        name: filters.search || undefined,
-        location_city: filters.city !== "all" ? filters.city : undefined,
-      }
+      // First, fetch all branches without filters
+      const allBranches = await branchService.getBranches({})
+      const provinces = [...new Set(allBranches.map((b) => b.location?.province).filter(Boolean))]
+      setAvailableProvinces(provinces)
 
-      console.log("Fetching branches with params:", params)
-      const data = await branchService.getBranches(params)
-      console.log("Received branches data:", data)
+      // Only apply filters if they are explicitly set
+      const params = {}
+      if (filters.search) params.name = filters.search
+      if (filters.province && filters.province !== "all") params.location_province = filters.province
 
-      // Apply client-side filtering for isActive
-      let filteredData = data
-      if (filters.isActive !== "all") {
+      const filteredData = await branchService.getBranches(params)
+      let finalData = filteredData
+
+      if (filters.isActive && filters.isActive !== "all") {
         const isActiveFilter = filters.isActive === "true"
-        filteredData = data.filter((branch) => {
-          console.log(`Branch ${branch.name}: isActive = ${branch.isActive}, filter = ${isActiveFilter}`)
-          return branch.isActive === isActiveFilter
-        })
+        finalData = filteredData.filter((branch) => branch.isActive === isActiveFilter)
       }
 
-      console.log("Filtered branches:", filteredData)
-      setBranches(filteredData)
-
-      // Extract unique cities for filter dropdown
-      const cities = [...new Set(data.map((b) => b.location?.city).filter(Boolean))]
-      setAvailableCities(cities)
+      setBranches(finalData)
     } catch (err) {
       console.error("Failed to fetch branches:", err)
       setError("Failed to load branches. Please try again.")
@@ -78,40 +69,9 @@ const AdminBranches = () => {
       setLoading(false)
     }
   }, [filters])
-
-  const fetchTheaters = useCallback(async () => {
-    try {
-      const data = await theaterService.getTheaters()
-      console.log("Fetched theaters for branch display:", data)
-      setTheaters(data)
-    } catch (err) {
-      console.error("Failed to fetch theaters:", err)
-    }
-  }, [])
-
   useEffect(() => {
     fetchBranches()
-    fetchTheaters()
-  }, [fetchBranches, fetchTheaters])
-
-  const getTheaterNames = (theaterIds) => {
-    if (!theaterIds || theaterIds.length === 0) {
-      console.log("No theater IDs provided")
-      return []
-    }
-
-    console.log("Getting theater names for IDs:", theaterIds)
-    console.log("Available theaters:", theaters)
-
-    const matchedTheaters = theaters.filter((theater) => theaterIds.includes(theater._id))
-    console.log("Matched theaters:", matchedTheaters)
-
-    return matchedTheaters.map((theater) => ({
-      id: theater._id,
-      name: theater.name,
-      type: theater.type,
-    }))
-  }
+  }, [fetchBranches])
 
   const handleCreateBranch = () => {
     setEditingBranch(null)
@@ -186,47 +146,8 @@ const AdminBranches = () => {
             <div className="flex items-center">
               <MapPin className="w-4 h-4 mr-2 text-gray-400" />
               <div>
-                <div className="font-medium">{location?.city || "N/A"}</div>
+                <div className="font-medium">{location?.province || "N/A"}</div>
                 <div className="text-sm text-gray-500 max-w-[200px] truncate">{location?.address || "No address"}</div>
-              </div>
-            </div>
-        )
-      },
-    },
-    {
-      accessorKey: "theaters",
-      header: "Theaters",
-      cell: ({ row }) => {
-        const theaterIds = row.getValue("theaters") || []
-        const theaterDetails = getTheaterNames(theaterIds)
-
-        console.log("Rendering theaters for row:", { theaterIds, theaterDetails })
-
-        return (
-            <div className="flex items-center">
-              <Theater className="w-4 h-4 mr-2 text-gray-400" />
-              <div>
-                {theaterDetails.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {theaterDetails.slice(0, 2).map((theater, index) => (
-                          <Badge key={theater.id} variant="outline" className="text-xs">
-                            {theater.name}
-                          </Badge>
-                      ))}
-                      {theaterDetails.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{theaterDetails.length - 2} more
-                          </Badge>
-                      )}
-                    </div>
-                ) : (
-                    <span className="text-sm text-gray-500">No theaters</span>
-                )}
-                {theaterDetails.length > 0 && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      {theaterDetails.length} theater{theaterDetails.length !== 1 ? "s" : ""}
-                    </div>
-                )}
               </div>
             </div>
         )
@@ -356,23 +277,15 @@ const AdminBranches = () => {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="flex-1">
-                <Input
-                    placeholder="Search branches by name..."
-                    value={filters.search}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                    className="max-w-sm"
-                />
-              </div>
-              <Select value={filters.city} onValueChange={(value) => setFilters((prev) => ({ ...prev, city: value }))}>
+              <Select value={filters.province} onValueChange={(value) => setFilters((prev) => ({ ...prev, province: value }))}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by City" />
+                  <SelectValue placeholder="Filter by Province" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {availableCities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
+                  <SelectItem value="all">All Provinces</SelectItem>
+                  {availableProvinces.map((province) => (
+                      <SelectItem key={province} value={province}>
+                        {province}
                       </SelectItem>
                   ))}
                 </SelectContent>
@@ -421,18 +334,13 @@ const AdminBranches = () => {
           </CardContent>
         </Card>
 
-        {/* Form Modal */}
-        <Dialog open={showFormModal} onOpenChange={setShowFormModal}>
-          <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingBranch ? "Edit Branch" : "Create New Branch"}</DialogTitle>
-              <DialogDescription>
-                {editingBranch ? "Update details for this branch." : "Fill in the details to create a new branch."}
-              </DialogDescription>
-            </DialogHeader>
-            <BranchForm branch={editingBranch} onSubmit={handleFormSubmit} onCancel={() => setShowFormModal(false)} />
-          </DialogContent>
-        </Dialog>
+        {showFormModal && (
+            <BranchForm
+                branch={editingBranch}
+                onSubmit={handleFormSubmit}
+                onCancel={() => setShowFormModal(false)}
+            />
+        )}
 
         {/* View Modal */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
@@ -506,36 +414,6 @@ const AdminBranches = () => {
                       <p>
                         {viewingBranch.operatingHours?.open || "09:00"} - {viewingBranch.operatingHours?.close || "23:00"}
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Assigned Theaters */}
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Assigned Theaters</label>
-                    <div className="mt-2">
-                      {viewingBranch.theaters && viewingBranch.theaters.length > 0 ? (
-                          <div className="space-y-2">
-                            {getTheaterNames(viewingBranch.theaters).map((theater) => (
-                                <div key={theater.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <div className="flex items-center gap-3">
-                                    <Theater className="h-4 w-4 text-gray-500" />
-                                    <div>
-                                      <div className="font-medium">{theater.name}</div>
-                                      <div className="text-sm text-gray-500">
-                                        {theater.type || "Standard"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <Badge variant="outline">{theater.type || "Standard"}</Badge>
-                                </div>
-                            ))}
-                          </div>
-                      ) : (
-                          <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
-                            <Theater className="mx-auto h-8 w-8 text-gray-300 mb-2" />
-                            <p className="text-sm">No theaters assigned</p>
-                          </div>
-                      )}
                     </div>
                   </div>
 
