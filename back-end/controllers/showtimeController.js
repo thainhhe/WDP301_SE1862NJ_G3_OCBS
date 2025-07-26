@@ -324,39 +324,31 @@ export const updateShowtime = async (req, res) => {
       if (couple != null) showtime.price.couple = couple;
 
       // ✅ Update seat prices if price changed
-      await SeatStatus.updateMany({ showtime: id }, [
-        {
-          $lookup: {
-            from: "seats",
-            localField: "seat",
-            foreignField: "_id",
-            as: "seatInfo",
-          },
-        },
-        {
-          $set: {
-            price: {
-              $switch: {
-                branches: [
-                  {
-                    case: {
-                      $eq: [{ $arrayElemAt: ["$seatInfo.type", 0] }, "vip"],
-                    },
-                    then: vip || standard * 1.5,
-                  },
-                  {
-                    case: {
-                      $eq: [{ $arrayElemAt: ["$seatInfo.type", 0] }, "couple"],
-                    },
-                    then: couple || standard * 2,
-                  },
-                ],
-                default: standard,
+      const seatStatuses = await SeatStatus.find({ showtime: id }).populate(
+        "seat",
+        "type"
+      );
+
+      const bulkOps = seatStatuses
+        .filter((ss) => ss.seat) // Handle cases where a seat might have been deleted
+        .map((ss) => {
+          const newPrice = getPriceForSeatType(ss.seat.type, showtime.price);
+          // Only update if the price is different
+          if (newPrice !== ss.price) {
+            return {
+              updateOne: {
+                filter: { _id: ss._id },
+                update: { $set: { price: newPrice } },
               },
-            },
-          },
-        },
-      ]);
+            };
+          }
+          return null;
+        })
+        .filter(Boolean); // Remove null entries
+
+      if (bulkOps.length > 0) {
+        await SeatStatus.bulkWrite(bulkOps);
+      }
     }
 
     await showtime.save();
